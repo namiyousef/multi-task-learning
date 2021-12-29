@@ -14,6 +14,13 @@ import torchvision.models
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets, models
 
+######################################################################################################
+
+# This is the MTL architecture that I came up with initially, but we decided to go with Connor's because it's more convenient for analysis. Uploading this for future reference
+
+######################################################################################################
+
+
 # number of samples to load from h5 file number of sample: [train- 2210, val - 738, test - 738]
 # num_samples = 5
 total_samples_train, total_samples_val, total_samples_test = 2210, 738, 738
