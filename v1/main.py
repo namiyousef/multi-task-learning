@@ -8,7 +8,7 @@ from data.data import get_dataloader, get_dataset
 from train import model_train
 
 
-# tst
+# ddd
 
 ### VAR ######
 NUM_EPOCH = 10
