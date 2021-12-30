@@ -1,5 +1,4 @@
 import torch
-
 import torch.nn as nn
 import torch.nn.functional as F
 from models.model import Model
@@ -7,8 +6,6 @@ from criterion.criterion import Criterion
 from data.data import get_dataloader, get_dataset
 from train import model_train
 
-
-# ddd
 
 ### VAR ######
 NUM_EPOCH = 10

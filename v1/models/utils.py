@@ -4,8 +4,7 @@ from models.heads import ClassificationHead, SegmentationHead
 
 def get_body():
 
-    PRE_TRAINED = True
-    shared_net = resnet18(PRE_TRAINED)
+    shared_net = resnet18()
     shared_net_chan = 512
     return shared_net ,shared_net_chan
     

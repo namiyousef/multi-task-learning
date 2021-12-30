@@ -1,13 +1,12 @@
-from torch.utils.data import dataset, DataLoader
-import torch.utils.data as data
+from torch.utils.data import Dataset, DataLoader
 import h5py
 import os
 
-class OxfordPetDataset(dataset):
+class OxfordPetDataset(Dataset):
 
     def __init__(self,config,split):
 
-        root = "/home/cwatts/COMP0090/Coursework2/data/datasets-oxpet/"
+        root = "./data"
         root = root + split
         
         img_path = r'images.h5'
@@ -20,33 +19,32 @@ class OxfordPetDataset(dataset):
         self.bbox_dir = os.path.join(root, bbox_path)
         self.bin_dir = os.path.join(root, bin_path)
 
+        # these return True if the strings of the respective task name is in the dictionary config, which is a dictionary of the tasks
         self.seg_task= "SEGSEM" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
 
 
     def __getitem__(self,index):
+        # Instead of returning a tensor we build a dictionary with the data corresponding to the tasks we have 
         sample = {}
-
+        # images are always loaded as well as the segmentation masks
         _img = self._load_data(index,self.image_dir)
         sample['image'] = _img
-
-        if self.seg_task:
-            _seg = self._load_data(index,self.seg_dir)
-            sample['seg'] = _seg
-
+        _seg = self._load_data(index,self.seg_dir)
+        sample['seg'] = _seg
+        # Selectively adding the relevant tasks
         if self.bb_task:
             _bb = self._load_data(index,self.bbox_dir)
             sample['bb'] = _bb 
-
         if self.bin_task:
             _bin = self._load_data(index,self.bin_dir)
             sample['bin'] = _bin 
 
         return sample  
 
-    #def __len__(self):
-        #return 
+    # def __len__(self):
+    #     return len()
 
     def _load_data(index,dir):
         with  h5py.File(dir , 'r') as file:

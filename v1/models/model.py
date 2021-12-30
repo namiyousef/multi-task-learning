@@ -14,7 +14,6 @@ class Model(nn.Module):
         self.encoder, self.encoder_chan = get_body()
         self.decoders = get_heads(config,self.tasks,self.encoder_chan)
          
-
     def forward(self, x):
         output = self.encoder(x)
         return {task:self.decoders[task](output) for task in self.tasks }
