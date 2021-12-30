@@ -1,12 +1,14 @@
-from torch.utils.data import dataset, DataLoader
+#from torch._C import double
+import torch
+from torch.utils.data import Dataset, DataLoader
 import torch.utils.data as data
 import h5py
 import os
 
-class OxfordPetDataset(dataset):
+class OxfordPetDataset(Dataset):
 
     def __init__(self,config,split):
-
+    
         root = "/home/cwatts/COMP0090/Coursework2/data/datasets-oxpet/"
         root = root + split
         
@@ -20,7 +22,7 @@ class OxfordPetDataset(dataset):
         self.bbox_dir = os.path.join(root, bbox_path)
         self.bin_dir = os.path.join(root, bin_path)
 
-        self.seg_task= "SEGSEM" in config["Tasks"].keys()
+        self.seg_task= "Segsem" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
 
@@ -29,26 +31,30 @@ class OxfordPetDataset(dataset):
         sample = {}
 
         _img = self._load_data(index,self.image_dir)
-        sample['image'] = _img
+        #sample['image'] = _img
+        sample['image'] = torch.from_numpy(_img).float()
 
         if self.seg_task:
             _seg = self._load_data(index,self.seg_dir)
-            sample['seg'] = _seg
+            sample['seg'] = torch.from_numpy(_seg).float()
+            #sample['seg'] = _seg
 
         if self.bb_task:
             _bb = self._load_data(index,self.bbox_dir)
-            sample['bb'] = _bb 
+            sample['bb'] = torch.from_numpy(_bb).float()
+            #sample['bb'] = _bb 
 
         if self.bin_task:
             _bin = self._load_data(index,self.bin_dir)
-            sample['bin'] = _bin 
+            sample['bin'] = torch.from_numpy(_bin).float()
+            # sample['bin'] = _bin 
 
         return sample  
 
-    #def __len__(self):
-        #return 
+    def __len__(self):
+        return 32
 
-    def _load_data(index,dir):
+    def _load_data(self,index,dir):
         with  h5py.File(dir , 'r') as file:
             key = list(file.keys())[0]
             elems = file[key][ index]

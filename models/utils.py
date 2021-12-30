@@ -4,7 +4,7 @@ from models.heads import ClassificationHead, SegmentationHead
 
 def get_body():
 
-    PRE_TRAINED = True
+    PRE_TRAINED = False
     shared_net = resnet18(PRE_TRAINED)
     shared_net_chan = 512
     return shared_net ,shared_net_chan
@@ -17,10 +17,10 @@ def get_heads(config,tasks,encoder_chan):
 def get_head(config, encoder_chan, task): 
 
     if task == "Class":
-        return ClassificationHead(config['Tasks'][task],encoder_chan)
+        return ClassificationHead(encoder_chan,config['Tasks'][task])
 
-    if task == "Seg":
-        return SegmentationHead(config['Tasks'][task],encoder_chan)
+    if task == "Segmen":
+        return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
 
     if task == "BB":
-        return ClassificationHead(config['Tasks'][task],encoder_chan)
+        return ClassificationHead(encoder_chan,config['Tasks'][task])
