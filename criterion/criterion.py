@@ -6,8 +6,8 @@ import torch.nn as nn
 def get_loss(task):
     
     if task == 'Class':
-        from criterion.loss_functions import CrossEntropyLoss
-        return CrossEntropyLoss()
+        from criterion.loss_functions import BCELoss
+        return BCELoss()
 
     elif task == 'Segmen':
         from criterion.loss_functions import BCEWithLogitsLoss

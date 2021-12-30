@@ -4,10 +4,10 @@ import torch.nn as nn
 from torch.nn.modules.module import Module
 
 
-class CrossEntropyLoss(nn.Module):
+class BCELoss(nn.Module):
     def __init__(self):
-        super(CrossEntropyLoss, self).__init__()
-        self.loss = nn.CrossEntropyLoss()
+        super(BCELoss, self).__init__()
+        self.loss = nn.BCELoss()
 
     def forward(self, out, label):
         return self.loss(out,label)
