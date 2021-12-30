@@ -1,6 +1,6 @@
 import torch
 from models.resnet import resnet18
-from models.heads import ClassificationHead, SegmentationHead
+from models.heads import ClassificationHead, SegmentationHead, BBHead
 
 def get_body():
 
@@ -23,4 +23,4 @@ def get_head(config, encoder_chan, task):
         return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
 
     if task == "BB":
-        return ClassificationHead(encoder_chan,config['Tasks'][task])
+        return BBHead(encoder_chan,config['Tasks'][task])

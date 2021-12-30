@@ -22,7 +22,7 @@ class OxfordPetDataset(Dataset):
         self.bbox_dir = os.path.join(root, bbox_path)
         self.bin_dir = os.path.join(root, bin_path)
 
-        self.seg_task= "Segsem" in config["Tasks"].keys()
+        self.seg_task= "Segmen" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
 
@@ -36,17 +36,17 @@ class OxfordPetDataset(Dataset):
 
         if self.seg_task:
             _seg = self._load_data(index,self.seg_dir)
-            sample['seg'] = torch.from_numpy(_seg).float()
+            sample['Segmen'] = torch.from_numpy(_seg).float()
             #sample['seg'] = _seg
 
         if self.bb_task:
             _bb = self._load_data(index,self.bbox_dir)
-            sample['bb'] = torch.from_numpy(_bb).float()
+            sample['BB'] = torch.from_numpy(_bb).float()
             #sample['bb'] = _bb 
 
         if self.bin_task:
             _bin = self._load_data(index,self.bin_dir)
-            sample['bin'] = torch.from_numpy(_bin).float()
+            sample['Class'] = torch.from_numpy(_bin).float()
             # sample['bin'] = _bin 
 
         return sample  

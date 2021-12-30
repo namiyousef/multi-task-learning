@@ -6,16 +6,16 @@ import torch.nn as nn
 def get_loss(task):
     
     if task == 'Class':
-        from criterion.loss_functions import BCELoss
-        return BCELoss()
+        from criterion.loss_functions import CrossEntropyLoss
+        return CrossEntropyLoss()
 
     elif task == 'Segmen':
         from criterion.loss_functions import BCEWithLogitsLoss
         return BCEWithLogitsLoss()
 
     elif task == 'BB':
-        from criterion.loss_functions import IoULoss
-        return IoULoss()
+        from criterion.loss_functions import L1Loss
+        return L1Loss()
 
     return
 
@@ -27,6 +27,6 @@ class Criterion(nn.Module):
 
     
     def forward(self, prediction, truth):
-        out = {task: self.loss_fncts[task](prediction[task], truth[task]) for task in self.tasks}
-        out['total'] = torch.sum(torch.stack([out[task] for task in self.tasks]))
-        return out
+        loss_dict = {task: self.loss_fncts[task](prediction[task], truth[task]) for task in self.tasks}
+        loss_dict['total'] = torch.sum(torch.stack([loss_dict[task] for task in self.tasks]))
+        return loss_dict

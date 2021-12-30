@@ -18,8 +18,25 @@ class ClassificationHead(nn.Sequential):
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
+        return torch.argmax(x, dim=1)
+
+class BBHead(nn.Sequential):
+
+    def __init__(self, in_channels, num_classes):
+        super(BBHead, self).__init__()
+            # not sure about size here
+            # this could be better
+            # bit of a black box
+        self.pool = nn.AvgPool2d(8)
+        self.fc1 = nn.Linear(in_features=512, out_features=256)
+        self.fc2 = nn.Linear(in_features=256, out_features=num_classes)
+
+    def forward(self, inputs):
+        x = self.pool(inputs)
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
         return x
-        
 
 class SegmentationHead(nn.Sequential):
 

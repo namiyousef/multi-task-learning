@@ -14,7 +14,7 @@ from train import model_train
 NUM_EPOCH = 10
 BASIC_CONFIG = {"Model":"Single Task","Tasks":{"Segmen":1}}
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{ "Class":2, "BB":2} }
-MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":2} }
+MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2} }
 
 MINI_BATCH_SIZE = 32
