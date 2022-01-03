@@ -47,5 +47,6 @@ val_dataloader = get_dataloader(val_dataset,MINI_BATCH_SIZE)
 
 for epoch in range(NUM_EPOCH):
 
+    print ("epoch " + str(epoch))
     model_eval = model_train(CONFIG,net,criterion,optimizer,train_dataloader,val_dataloader)
 

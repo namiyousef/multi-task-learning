@@ -50,6 +50,7 @@ class SegmentationHead(nn.Sequential):
     def forward(self, inputs):
         #x = self.first_layer(inputs)
         x = inputs
+        
         for up in self.decoder:
             x = up(x)
         return self.out_layer(x)
