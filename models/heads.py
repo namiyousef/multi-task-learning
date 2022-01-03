@@ -18,7 +18,9 @@ class ClassificationHead(nn.Sequential):
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
-        return torch.argmax(x, dim=1)
+        # poss argmax but doesnt work with cross entropy loss
+        #torch.argmax(x, dim=1).float()
+        return x.double()
 
 class BBHead(nn.Sequential):
 

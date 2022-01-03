@@ -52,7 +52,7 @@ class OxfordPetDataset(Dataset):
         return sample  
 
     def __len__(self):
-        return 32
+        return 1000
 
     def _load_data(self,index,dir):
         with  h5py.File(dir , 'r') as file:

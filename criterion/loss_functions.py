@@ -31,6 +31,26 @@ class BCEWithLogitsLoss(nn.Module):
     def forward(self, out, label):
         return self.loss(out,label)
 
+class DiceLoss(nn.Module):
+
+    ### FROM online
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        #inputs = F.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.contiguous().view(-1)
+        
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        
+        return 1 - dice
+
 class IoULoss(nn.Module):
     def __init__(self):
         super(IoULoss, self).__init__()
@@ -43,10 +63,10 @@ class IoULoss(nn.Module):
 class L1Loss(nn.Module):
     def __init__(self):
         super(L1Loss, self).__init__()
-        self.loss = nn.L1Loss()
+        self.loss = nn.L1Loss(reduction="none")
 
     def forward(self, out, label):
-        return self.loss(out,label,reduction="none").sum(1)      
+        return self.loss(out,label).sum(1).sum()     
 
 
 

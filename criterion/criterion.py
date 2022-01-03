@@ -10,8 +10,10 @@ def get_loss(task):
         return CrossEntropyLoss()
 
     elif task == 'Segmen':
-        from criterion.loss_functions import BCEWithLogitsLoss
-        return BCEWithLogitsLoss()
+        #from criterion.loss_functions import BCEWithLogitsLoss
+        #return BCEWithLogitsLoss()
+        from criterion.loss_functions import DiceLoss
+        return DiceLoss()
 
     elif task == 'BB':
         from criterion.loss_functions import L1Loss

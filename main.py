@@ -14,6 +14,7 @@ from train import model_train
 NUM_EPOCH = 10
 BASIC_CONFIG = {"Model":"Single Task","Tasks":{"Segmen":1}}
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{ "Class":2, "BB":2} }
+#MLT_CONFIG = {"Model":"Multi Task","Tasks":{"Segmen":1}}
 MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2} }
 
@@ -34,7 +35,7 @@ net = Model(CONFIG)
 criterion = Criterion(CONFIG)
 
     # get optimizer
-optimizer = torch.optim.Adam(net.parameters(),lr=0.0001)
+optimizer = torch.optim.Adam(net.parameters(),lr=0.006)
 
     # transform and get data
 train_dataset = get_dataset(CONFIG,"train")
