@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from torchvision import transforms as trans
+#from models.model import  ConvLayer
 
 class ClassificationHead(nn.Sequential):
 
@@ -10,10 +12,10 @@ class ClassificationHead(nn.Sequential):
             # this could be better
             # bit of a black box
         self.pool = nn.AvgPool2d(8)
-        self.fc1 = nn.Linear(in_features=512, out_features=256)
+        self.fc1 = nn.Linear(in_features=in_channels, out_features=256)
         self.fc2 = nn.Linear(in_features=256, out_features=num_classes)
 
-    def forward(self, inputs):
+    def forward(self, inputs,skips):
         x = self.pool(inputs)
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
@@ -30,30 +32,41 @@ class BBHead(nn.Sequential):
             # this could be better
             # bit of a black box
         self.pool = nn.AvgPool2d(8)
-        self.fc1 = nn.Linear(in_features=512, out_features=256)
+        self.fc1 = nn.Linear(in_features=in_channels, out_features=256)
         self.fc2 = nn.Linear(in_features=256, out_features=num_classes)
 
-    def forward(self, inputs):
+    def forward(self, inputs,skips):
         x = self.pool(inputs)
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
 
-class SegmentationHead(nn.Sequential):
+class SegmentationHeadOLD(nn.Sequential):
 
     def __init__(self, init_ch=512, num_levels=5, out_ch=1):
-        super(SegmentationHead, self).__init__()
+        super(SegmentationHeadOLD, self).__init__()
         self.decoder = [self._segmen_block(2**(-i)*init_ch, type='up') for i in range(num_levels)] 
         self.out_layer = self._conv2d_layer(16,out_ch, is_output=True)
 
-    def forward(self, inputs):
+    def forward(self, inputs,skips):
         #x = self.first_layer(inputs)
         x = inputs
-        
-        for up in self.decoder:
+        x = self.decoder[0](inputs)
+        for up , skip in zip(self.decoder[1:3], reversed(skips)):
+            x = self._resize_to(x,skip) + skip
+            x = up(x)
+        for up in self.decoder[3:]:
             x = up(x)
         return self.out_layer(x)
+    
+    def _resize_to(self,x,y):
+        #from tutorial
+        if x.shape[1:4]==y.shape[1:4]:
+            return x
+        resize = trans.Compose([
+            trans.Resize(list(x.shape[1:4]))])
+        return resize(y)
 
     def _conv2d_layer(self, in_ch,out_ch, is_output=False):
 
@@ -113,5 +126,76 @@ class SegmentationHead(nn.Sequential):
 
         return _call
 
-    
 
+class SegmentationHead(nn.Module):
+    def __init__(self):
+        super(SegmentationHead, self).__init__()
+
+        ### NEEDS REWORDING
+
+        filters=[32, 32, 64, 128]
+
+        self.upsample_1 = Upsample(filters[3], filters[3], 2, 2)
+        self.decode_conv1 = ConvLayer(filters[3] + filters[2], filters[2], 1, 1)
+
+        self.upsample_2 = Upsample(filters[2], filters[2], 2, 2)
+        self.decode_conv2 = ConvLayer(filters[2] + filters[1], filters[1], 1, 1)
+
+        self.upsample_3 = Upsample(filters[1], filters[1], 2, 2)
+        self.decode_conv3 = ConvLayer(filters[1] + filters[0], filters[0], 1, 1)
+
+        self.output_layer = nn.Sequential(
+            nn.Conv2d(filters[0], 1, 1, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x, skips):
+        
+        x = self.upsample_1(x)
+        x = self.decode_conv1(torch.cat([x, skips[2]], dim=1))
+        x = self.upsample_2(x)
+        x = self.decode_conv2(torch.cat([x, skips[1]], dim=1))
+        x = self.upsample_3(x)
+        x = self.decode_conv3(torch.cat([x, skips[0]], dim=1))
+        output = self.output_layer(x)
+        return output  
+
+
+class ConvLayer(nn.Module):
+    
+    def __init__(self, input_dim, output_dim, stride, padding):
+        super(ConvLayer, self).__init__()
+
+        ### TAKEN FROM INTERNET NEEDS REWORDING
+       
+        self.conv_block = nn.Sequential(
+            nn.BatchNorm2d(input_dim),
+            nn.ReLU(),
+            nn.Conv2d(
+                input_dim, output_dim, kernel_size=3, stride=stride, padding=padding
+            ),
+            nn.BatchNorm2d(output_dim),
+            nn.ReLU(),
+            nn.Conv2d(output_dim, output_dim, kernel_size=3, padding=1),
+        )
+        self.conv_skip = nn.Sequential(
+            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=stride, padding=1),
+            nn.BatchNorm2d(output_dim),
+        )
+
+    def forward(self, x):
+
+        return self.conv_block(x) + self.conv_skip(x)
+
+class Upsample(nn.Module):
+    def __init__(self, input_dim, output_dim, kernel, stride):
+        super(Upsample, self).__init__()
+
+        ### TAKEN FROM INTERNET NEEDS REWORDING
+
+        self.upsample = nn.ConvTranspose2d(
+            input_dim, output_dim, kernel_size=kernel, stride=stride
+        )
+
+    def forward(self, x):
+        return self.upsample(x)

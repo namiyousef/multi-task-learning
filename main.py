@@ -2,7 +2,7 @@ import torch
 
 import torch.nn as nn
 import torch.nn.functional as F
-from models.model import Model
+from models.model import Model, ResUnet
 from criterion.criterion import Criterion
 from data.data import get_dataloader, get_dataset
 from train import model_train
@@ -11,15 +11,15 @@ from train import model_train
 
 
 ### VAR ######
-NUM_EPOCH = 10
+
 BASIC_CONFIG = {"Model":"Single Task","Tasks":{"Segmen":1}}
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{ "Class":2, "BB":2} }
-#MLT_CONFIG = {"Model":"Multi Task","Tasks":{"Segmen":1}}
-MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
+MLT_CONFIG = {"Model":"Multi Task","Tasks":{"Segmen":1}}
+#MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2} }
 
 MINI_BATCH_SIZE = 32
-NUM_EPOCH = 10
+NUM_EPOCH = 80
 
 ""
 
@@ -29,6 +29,7 @@ CONFIG = MLT_CONFIG
 
     # get model 
 net = Model(CONFIG)
+#net = ResUnet(3)
 #net.double()
 
     # get losses 
