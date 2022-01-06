@@ -7,18 +7,18 @@ from criterion.criterion import Criterion
 from data.data import get_dataloader, get_dataset
 from train import model_train
 
-### VAR ######
+# Base network
 BASIC_CONFIG = {"Model":"Single Task","Tasks":{"Segmen":1}}
-#MLT_CONFIG = {"Model":"Multi Task", "Tasks":{ "Class":2, "BB":2} }
-#MLT_CONFIG = {"Model":"Multi Task","Tasks":{"Segmen":1}}
-MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
-#MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2} }
+# Full MTL
+#MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2, "BB":4} }
+# MTL with the random layer
+MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "RNL":1} }
 
 MINI_BATCH_SIZE = 32
-NUM_EPOCH = 1
+NUM_EPOCH = 5
 test_mini_batch = 32
 
-CONFIG = BASIC_CONFIG 
+CONFIG = MLT_CONFIG 
 
 # get model 
 net = Model(CONFIG)
@@ -67,7 +67,7 @@ with torch.no_grad():
             #print(f"running_loss: {running_loss}")
             loss_epoch_dict["Seg"].append(loss['Segmen'].detach().item())
             
-            #loss_epoch_dict["Class"].append(loss['Class'].item())•
+            #loss_epoch_dict["Class"].append(loss['Class'].item())
             #loss_epoch_dict["BB"].append(loss['BB'].item())
 
 seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))

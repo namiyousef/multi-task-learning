@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.module import Module
 import torch.nn.functional as F
+from torchvision.utils import save_image
 
 
 class BCELoss(nn.Module):
@@ -37,7 +38,7 @@ class DiceLoss(nn.Module):
         super(DiceLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
-        
+        #save_image(targets, 'label.png')
         inputs = inputs.view(-1)
         targets = targets.contiguous().view(-1)
         

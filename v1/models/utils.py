@@ -1,6 +1,6 @@
 import torch
 from models.resnet import resnet18
-from models.heads import ClassificationHead, SegmentationHead, BBHead
+from models.heads import ClassificationHead, SegmentationHead, BBHead, RandomHeadNoLayers
 from models.bodys import ResUBody
 import torch.nn as nn
 
@@ -38,13 +38,13 @@ def get_body():
     #shared_net = resnet18(PRE_TRAINED)
     shared_net = ResUBody(RESU_FILTS)
     shared_net_chan = RESU_FILTS[3]
-    return shared_net ,shared_net_chan
+    return shared_net, shared_net_chan
     
-def get_heads(config,tasks,encoder_chan):
+def get_heads(config,tasks,encoder_chan, **kwargs): # added xOG here
 
-    return torch.nn.ModuleDict({task: get_head(config, encoder_chan, task) for task in tasks})
+    return torch.nn.ModuleDict({task: get_head(config, encoder_chan, task) for task in tasks}) 
 
-def get_head(config, encoder_chan, task): 
+def get_head(config, encoder_chan, task, **kwargs): # RNL - added an input xOG so that the original input image gets fed into the random layer
 
     if task == "Class":
         return ClassificationHead(encoder_chan,config['Tasks'][task])
@@ -55,3 +55,6 @@ def get_head(config, encoder_chan, task):
 
     if task == "BB":
         return BBHead(encoder_chan,config['Tasks'][task])
+    
+    if task == "RNL":
+        return RandomHeadNoLayers()

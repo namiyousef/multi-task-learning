@@ -12,14 +12,14 @@ class ResUBody(nn.Module):
         self.output_layer = ConvLayer(filters[2], filters[3], 2, 1)
         
 
-    def forward(self, x):
+    def forward(self, inputs):
 
-        x_1 = self.input_conv_layer(x) + self.input_skip_layer(x)
+        x_1 = self.input_conv_layer(inputs) + self.input_skip_layer(inputs)
         x_2 = self.conv_layer_1(x_1)
         x_3 = self.conv_layer_2(x_2)
         output = self.output_layer(x_3)
 
-        return output , [x_1,x_2,x_3]
+        return inputs, output , [x_1,x_2,x_3]
 
     def _input_cov(self,filters,split):
 

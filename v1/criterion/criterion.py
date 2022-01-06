@@ -4,17 +4,22 @@ import numpy as np
 
 def get_loss(task):
     
-    if task == 'Class':
-        from criterion.loss_functions import CrossEntropyLoss
-        return CrossEntropyLoss()
 
-    elif task == 'Segmen':
+    if task == 'Segmen':
         from criterion.loss_functions import DiceLoss
         return DiceLoss()
+
+    elif task == 'Class':
+        from criterion.loss_functions import CrossEntropyLoss
+        return CrossEntropyLoss()
 
     elif task == 'BB':
         from criterion.loss_functions import L1Loss
         return L1Loss()
+    
+    elif task == 'RNL':
+        from criterion.loss_functions import DiceLoss
+        return DiceLoss()
 
     return
 

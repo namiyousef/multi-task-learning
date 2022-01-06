@@ -6,16 +6,17 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict):  # added xOG for the random task
         super(Model, self).__init__()
+        #self.inputs = xOG
         self.model = config["Model"]
         self.tasks = config["Tasks"].keys()
         self.encoder, self.encoder_chan = get_body()
         self.decoders = get_heads(config,self.tasks,self.encoder_chan)
          
     def forward(self, x):
-        output, skips = self.encoder(x)
-        return {task:self.decoders[task](output, skips) for task in self.tasks }
+        xOG, output, skips = self.encoder(x)
+        return {task:self.decoders[task](xOG, output, skips) for task in self.tasks }
 
 
 
