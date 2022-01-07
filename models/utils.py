@@ -1,8 +1,10 @@
 import torch
 from models.resnet import resnet18
 from models.heads import ClassificationHead, SegmentationHead, BBHead
-from models.bodys import ResUBody
+from models.bodys import ResUBody, ResUBodyNEW
 import torch.nn as nn
+from torchsummaryX import summary
+
 
 class ConvLayer(nn.Module):
     def __init__(self, input_dim, output_dim, stride, padding):
@@ -33,9 +35,10 @@ class ConvLayer(nn.Module):
 
 def get_body(filters):
 
-    #PRE_TRAINED = False
-    RESU_FILTS = [32, 32, 64, 128]
-    shared_net = ResUBody(filters)
+    #shared_net = ResUBody(filters)
+    #arch =summary(shared_net,torch.rand((1,3,256,256)))
+    shared_net = resnet18(False)
+    #arch =summary(shared_net,torch.rand((1,3,256,256)))
     shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
     
@@ -52,9 +55,7 @@ def get_head(config, encoder_chan, task,filters):
         #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
         return SegmentationHead(filters)
 
-    if task == "Rand Segmen":
-        #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
-        return SegmentationHead()
+
 
     if task == "BB":
         return BBHead(encoder_chan,config['Tasks'][task])

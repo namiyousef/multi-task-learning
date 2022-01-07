@@ -27,7 +27,7 @@ class OxfordPetDataset(Dataset):
         self.seg_task= "Segmen" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
-        self.rand_bin_task= "Rand Classd" in config["Tasks"].keys()
+        
 
         self.num_minibatches = self.__len__() // mini_batch_size
         #self.indices_split = np.split(np.random.shuffle(np.linspace\

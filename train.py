@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from data.data import OxfordPetDataset, _get_data
+from utils import _prepare_data , _update_loss_dict
 
 def model_train(config,net,criterion,optimizer,mini_batch_size,train_dataloader,val_dataloader):
 
@@ -15,27 +16,27 @@ def model_train(config,net,criterion,optimizer,mini_batch_size,train_dataloader,
     for i,mini_batch in enumerate(train_dataloader):
         
         #forward
-        inputs = mini_batch["image"]
-        inputs = inputs.permute([0,3, 2, 1])
+        #inputs = mini_batch["image"]
+        #inputs = inputs.permute([0,3, 2, 1])
         #mini_batch["Segmen"] = mini_batch["Segmen"].permute([0,3, 2, 1])
-        mini_batch["Class"] = torch.reshape(mini_batch["Class"],(-1,)).type(torch.LongTensor)
+        #mini_batch["Class"] = torch.reshape(mini_batch["Class"],(-1,)).type(torch.LongTensor)
+
+        mini_batch = _prepare_data(mini_batch,config)
+        inputs = mini_batch["image"]
+
         task_targets = {task:mini_batch[task]for task in config["Tasks"].keys()}
         optimizer.zero_grad()
         outputs = net(inputs)
-        #print (outputs["Class"].item())
-        #loss
+        
         loss = criterion(outputs,task_targets)
         loss['total'].backward()
         optimizer.step()
-        #print("check")
-        #print(loss)
+        
         #backward
         print(loss['Class'].item())
         
+        loss_epoch_dict = _update_loss_dict(loss_epoch_dict,loss, config)
 
-        #loss_epoch_dict["Seg"].append(loss['Segmen'].item())
-        loss_epoch_dict["Class"].append(loss['Class'].item())
-        #loss_epoch_dict["BB"].append(loss['BB'].item())
     
     
     #seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))

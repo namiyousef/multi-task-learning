@@ -39,6 +39,49 @@ class ResUBody(nn.Module):
 
         return _call
 
+class ResUBodyNEW(nn.Module):
+    def __init__(self,  filters):
+        super(ResUBodyNEW, self).__init__()
+
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.input_conv_layer = self._input_cov(filters[0],split = False)
+        self.input_skip_layer = self._input_cov(filters[0],split = True)
+        self.conv_layer_1 = ConvLayer(filters[0], filters[1], 2, 1)
+        self.conv_layer_2 = ConvLayer(filters[1], filters[2], 2, 1)
+
+        self.output_layer = ConvLayer(filters[2], filters[3], 2, 1)
+        
+
+    def forward(self, x):
+
+        x_1 = self.input_conv_layer(x)#+ self.input_skip_layer(x)
+        x_1 = self.maxpool(x_1)
+        x_2 = self.conv_layer_1(x_1)
+        x_3 = self.conv_layer_2(x_2)
+        output = self.output_layer(x_3)
+
+        return output , [x_1,x_2,x_3]
+
+    def _input_cov(self,filters,split):
+
+        def _call(_input):
+            
+            #x = nn.Conv2d(3, filters, kernel_size=3, padding=1)(_input)
+
+            if split == True:
+                return x
+
+            else:
+                x = nn.Conv2d(filters, filters, kernel_size=7, stride=2, padding=3,
+                               bias=False)(_input)
+                x = nn.BatchNorm2d(filters)(x)
+                x = nn.ReLU()(x)
+                
+                return x
+
+        return _call
+
+
 class ConvLayer(nn.Module):
     def __init__(self, input_dim, output_dim, stride, padding):
         super(ConvLayer, self).__init__()
@@ -63,3 +106,4 @@ class ConvLayer(nn.Module):
     def forward(self, x):
 
         return self.conv_block(x) + self.conv_skip(x)
+        #return self.conv_block(x) + self.conv_skip(x)

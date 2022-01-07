@@ -9,20 +9,29 @@ class ClassificationHead(nn.Sequential):
 
     def __init__(self, in_channels, num_classes):
         super(ClassificationHead, self).__init__()
+        self.conv_layer1 = ConvLayer(128, 256, 2, 1)
+        #self.conv_layer2 = ConvLayer(256, 512, 1, 1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(256, num_classes)
         #self.pool = nn.AvgPool2d(8)
-        self.pool = nn.MaxPool2d(8)
-        self.soft = nn.Softmax(dim=1)
-        self.fc1 = nn.Linear(in_features=2048, out_features=256)
-        self.fc2 = nn.Linear(in_features=256, out_features=16)
-        self.fc3 = nn.Linear(in_features=16, out_features=num_classes)
+        #self.pool = nn.MaxPool2d(8)
+        #self.soft = nn.Softmax(dim=1)
+        #self.fc1 = nn.Linear(in_features=512, out_features=256)
+        #self.fc2 = nn.Linear(in_features=256, out_features=16)
+        #self.fc3 = nn.Linear(in_features=16, out_features=num_classes)
 
     def forward(self, inputs,skips):
-        x = self.pool(inputs)
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = self.conv_layer1(inputs)
+        #x = self.conv_layer2(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        #x = self.pool(inputs)
+        #x = torch.flatten(x, 1) # flatten all dimensions except batch
         #x = self.fc1(x)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        #x = F.relu(self.fc1(x))
+        #x = F.relu(self.fc2(x))
+        #x = self.fc3(x)
         #x = self.soft(x)
         return x.double()
 
