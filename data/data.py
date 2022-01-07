@@ -4,14 +4,16 @@ from torch.utils.data import Dataset, DataLoader
 import torch.utils.data as data
 import h5py
 import os
+import numpy as np
 
 class OxfordPetDataset(Dataset):
 
-    def __init__(self,config,split):
-    
+    def __init__(self,config,split,mini_batch_size):
+        
+
         root = "/home/cwatts/COMP0090/Coursework2/data/datasets-oxpet/"
         root = root + split
-        
+        self.split = split
         img_path = r'images.h5'
         mask_path = r'masks.h5'
         bbox_path = r'bboxes.h5'
@@ -25,6 +27,17 @@ class OxfordPetDataset(Dataset):
         self.seg_task= "Segmen" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
+        self.rand_bin_task= "Rand Classd" in config["Tasks"].keys()
+
+        self.num_minibatches = self.__len__() // mini_batch_size
+        #self.indices_split = np.split(np.random.shuffle(np.linspace\
+            #(0, self.__len__(),self.__len__() )),self.num_minibatches)
+        self.indices = np.arange(0, self.__len__() )
+        np.random.shuffle(self.indices)
+        self.indices_split = np.array_split(self.indices,self.num_minibatches)
+        self.test =1
+
+
 
 
     def __getitem__(self,index):
@@ -52,22 +65,48 @@ class OxfordPetDataset(Dataset):
         return sample  
 
     def __len__(self):
-        return 2210
+
+        if self.split == "train":
+            return 2210
+        if self.split == "val":
+            return 700
+        if self.split == "test":
+            return 700   
 
     def _load_data(self,index,dir):
         with  h5py.File(dir , 'r') as file:
             key = list(file.keys())[0]
             elems = file[key][ index]
             return  elems
+
+    def _load_segmen_random():
+        return 1
+
+
+    def _get_num_minibatch(self):
+        return self.num_minibatches
+
+    def _getindices_(self,index):
+    
+        return self.indices_split[index]
+
     
 #### UTIL FUNCTS #########
 
 def get_dataset(config,split):
 
-    dataset = OxfordPetDataset(config,split)
+    dataset = OxfordPetDataset(config,split,32)
     return dataset
+    #return 1
 
 def get_dataloader(dataset, batch_size):
 
     dataloader = DataLoader(dataset, batch_size, shuffle=True)
     return dataloader
+    #return 1
+
+def _get_data(dataset,index):
+
+    indices = np.sort(dataset._getindices_(index))
+    return dataset.__getitem__(indices)
+

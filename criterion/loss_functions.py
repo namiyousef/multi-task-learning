@@ -62,7 +62,7 @@ class L1Loss(nn.Module):
         self.loss = nn.L1Loss(reduction="none")
 
     def forward(self, out, label):
-        return self.loss(out,label).sum(1).sum()     
+        return self.loss(out,label).sum(1).sum()    
 
 
 

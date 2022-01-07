@@ -31,25 +31,28 @@ class ConvLayer(nn.Module):
 
 
 
-def get_body():
+def get_body(filters):
 
     #PRE_TRAINED = False
     RESU_FILTS = [32, 32, 64, 128]
-    #shared_net = resnet18(PRE_TRAINED)
-    shared_net = ResUBody(RESU_FILTS)
-    shared_net_chan = RESU_FILTS[3]
+    shared_net = ResUBody(filters)
+    shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
     
-def get_heads(config,tasks,encoder_chan):
+def get_heads(config,tasks,encoder_chan,filters):
 
-    return torch.nn.ModuleDict({task: get_head(config, encoder_chan, task) for task in tasks})
+    return torch.nn.ModuleDict({task: get_head(config, encoder_chan, task,filters) for task in tasks})
 
-def get_head(config, encoder_chan, task): 
+def get_head(config, encoder_chan, task,filters): 
 
     if task == "Class":
         return ClassificationHead(encoder_chan,config['Tasks'][task])
 
     if task == "Segmen":
+        #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
+        return SegmentationHead(filters)
+
+    if task == "Rand Segmen":
         #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
         return SegmentationHead()
 

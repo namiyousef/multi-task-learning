@@ -6,12 +6,12 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, filters):
         super(Model, self).__init__()
         self.model = config["Model"]
         self.tasks = config["Tasks"].keys()
-        self.encoder, self.encoder_chan = get_body()
-        self.decoders = get_heads(config,self.tasks,self.encoder_chan)
+        self.encoder, self.encoder_chan = get_body(filters)
+        self.decoders = get_heads(config,self.tasks,self.encoder_chan,filters)
          
 
     def forward(self, x):
