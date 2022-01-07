@@ -74,7 +74,8 @@ with torch.no_grad():
         loss_epoch_dict["Class"].append(loss['Class'].item())
         #loss_epoch_dict["BB"].append(loss['BB'].item())
     
-seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))
+#seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))
 class_mean = np.mean(np.array(loss_epoch_dict["Class"]))
-bb_mean = np.mean(np.array(loss_epoch_dict["BB"]))
-print ("seg mean " + str(seg_mean) + " class mean " + str(class_mean) + " bb mean " + str(bb_mean))
+#bb_mean = np.mean(np.array(loss_epoch_dict["BB"]))
+#print ("seg mean " + str(seg_mean) + " class mean " + str(class_mean) + " bb mean " + str(bb_mean))
+print ( " class mean " + str(class_mean) )
