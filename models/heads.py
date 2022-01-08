@@ -5,6 +5,37 @@ import torch.nn.functional as F
 from torchvision import transforms as trans
 #from models.model import  ConvLayer
 
+class ClassificationHeadUNet(nn.Module):
+    def __init__(self, filters, num_classes):
+        super(ClassificationHeadUNet, self).__init__()
+        L = len(filters)
+        for i in range(1, L):
+            setattr(self,
+                    f'upsample_{i}',
+                    Upsample(filters[-i], filters[-i], 2, 2)
+                    )
+            setattr(self,
+                    f'decode_conv{i}',
+                    ConvLayer(filters[-i]+filters[-i-1], filters[-i-1], 1, 1)
+                    )
+
+        # should you do a final convolution? Currently not doing one for filters[0]?
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(filters[-L], num_classes)
+
+    def forward(self, x, skips):
+        for i, skip in enumerate(skips[::-1], 1):
+            upsample = getattr(self, f'upsample_{i}')
+            decode_conv = getattr(self, f'decode_conv{i}')
+            x = upsample(x)
+            x = decode_conv(torch.cat([x, skip], dim=1))
+
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        output = self.fc(x)
+        return output
+
+
 class ClassificationHead(nn.Sequential):
 
     def __init__(self, in_channels, num_classes):
@@ -21,11 +52,13 @@ class ClassificationHead(nn.Sequential):
         #self.fc3 = nn.Linear(in_features=16, out_features=num_classes)
 
     def forward(self, inputs,skips):
+        print(len(skips))
         x = self.conv_layer1(inputs)
         #x = self.conv_layer2(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
+        # TODO how come we're not taking like a softmax type output?? could that be why our classification performs badly here??
         #x = self.pool(inputs)
         #x = torch.flatten(x, 1) # flatten all dimensions except batch
         #x = self.fc1(x)
@@ -55,6 +88,7 @@ class BBHead(nn.Sequential):
 class SegmentationHead(nn.Module):
     def __init__(self,filters):
         super(SegmentationHead, self).__init__()
+        # TODO this is not parametric as currently designed for filters of size 4. Would ideally parametrize to test larger/smaller models
 
         ### NEEDS REWORDING
 
@@ -75,7 +109,7 @@ class SegmentationHead(nn.Module):
         )
 
     def forward(self, x, skips):
-        
+
         x = self.upsample_1(x)
         x = self.decode_conv1(torch.cat([x, skips[2]], dim=1))
         x = self.upsample_2(x)
