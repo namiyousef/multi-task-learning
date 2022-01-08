@@ -31,5 +31,6 @@ class Criterion(nn.Module):
     
     def forward(self, prediction, truth):
         loss_dict = {task: self.loss_fncts[task](prediction[task], truth[task]) for task in self.tasks}
+        # TODO not convinced about this lambda thing, this is somewhat arbitrary, shouldn't we be limiting the losses to sum up to one, e.g. so that they behave like weights?
         loss_dict['total'] = torch.sum(torch.stack([loss_dict[task]*self.lambdas[task] for task in self.tasks]))
         return loss_dict

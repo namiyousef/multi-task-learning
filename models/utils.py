@@ -1,9 +1,10 @@
 import torch
-from models.resnet import resnet18
-from models.heads import ClassificationHead, SegmentationHead, BBHead
+# TODO I've removed all resnet referenes
+#from models.resnet import resnet18
+from models.heads import ClassificationHead, SegmentationHead, BBHead, ClassificationHeadUNet
 from models.bodys import ResUBody, ResUBodyNEW
 import torch.nn as nn
-from torchsummaryX import summary
+#from torchsummaryX import summary
 
 
 class ConvLayer(nn.Module):
@@ -35,9 +36,10 @@ class ConvLayer(nn.Module):
 
 def get_body(filters):
 
-    #shared_net = ResUBody(filters)
+    shared_net = ResUBody(filters)
     #arch =summary(shared_net,torch.rand((1,3,256,256)))
-    shared_net = resnet18(False)
+    #shared_net = resnet18(False)
+    # TODO raise bug: resnet18 not correctly parametrised, gives size error 128 vs 512
     #arch =summary(shared_net,torch.rand((1,3,256,256)))
     shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
@@ -49,8 +51,9 @@ def get_heads(config,tasks,encoder_chan,filters):
 def get_head(config, encoder_chan, task,filters): 
 
     if task == "Class":
-        return ClassificationHead(encoder_chan,config['Tasks'][task])
-
+        # TODO modified classification head
+        #return ClassificationHead(encoder_chan,config['Tasks'][task])
+        return ClassificationHeadUNet(filters, config['Tasks'][task])
     if task == "Segmen":
         #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
         return SegmentationHead(filters)

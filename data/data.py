@@ -1,18 +1,16 @@
-#from torch._C import double
 import torch
 from torch.utils.data import Dataset, DataLoader
-import torch.utils.data as data
 import h5py
 import os
 import numpy as np
 
+
 class OxfordPetDataset(Dataset):
 
-    def __init__(self,config,split,mini_batch_size):
-        
-
-        root = "/home/cwatts/COMP0090/Coursework2/data/datasets-oxpet/"
+    def __init__(self, config, split, mini_batch_size):
+        root = "datasets/data_new/"
         root = root + split
+        # Need to add option later for more flexibility
         self.split = split
         img_path = r'images.h5'
         mask_path = r'masks.h5'
@@ -44,13 +42,11 @@ class OxfordPetDataset(Dataset):
         sample = {}
 
         _img = self._load_data(index,self.image_dir)
-        #sample['image'] = _img
         sample['image'] = torch.from_numpy(_img).float()
 
         if self.seg_task:
             _seg = self._load_data(index,self.seg_dir)
             sample['Segmen'] = torch.from_numpy(_seg).float()
-            #sample['seg'] = _seg
 
         if self.bb_task:
             _bb = self._load_data(index,self.bbox_dir)
@@ -79,7 +75,7 @@ class OxfordPetDataset(Dataset):
             elems = file[key][ index]
             return  elems
 
-    def _load_segmen_random():
+    def _load_segmen_random(self):
         return 1
 
 
@@ -94,8 +90,10 @@ class OxfordPetDataset(Dataset):
 #### UTIL FUNCTS #########
 
 def get_dataset(config,split):
+    # TODO why? can't we just use the dset directly??
 
     dataset = OxfordPetDataset(config,split,32)
+    # TODO why is batchsize fixed?
     return dataset
     #return 1
 

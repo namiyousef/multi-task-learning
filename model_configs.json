@@ -1,0 +1,12 @@
+{
+  "classification": {
+      "Model":"Multi Task",
+      "Tasks":{"Class":2},
+      "Loss Lambda":{ "Class":1}
+    },
+    "classification": {
+      "Model":"Multi Task",
+      "Tasks":{"Class":2},
+      "Loss Lambda":{ "Class":1}
+    }
+}
