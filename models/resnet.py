@@ -202,12 +202,16 @@ class ResNet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        #skips += [torch.gather(x, dim, index)]
+        skips.append(x)
+        
         x = self.maxpool(x)
 
         x = self.layer1(x)
+        skips.append(x)
         x = self.layer2(x)
+        skips.append(x)
         x = self.layer3(x)
+        skips.append(x)
         x = self.layer4(x)
 
         #x = self.avgpool(x)

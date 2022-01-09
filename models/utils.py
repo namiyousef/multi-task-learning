@@ -1,5 +1,6 @@
 import torch
-from models.resnet import resnet18
+from models.resnet import resnet18, resnet34
+#from models.heads import BBHeadNEW, ClassificationHead, SegmentationHead, BBHead
 from models.heads import ClassificationHead, SegmentationHead, BBHead
 from models.bodys import ResUBody, ResUBodyNEW
 import torch.nn as nn
@@ -37,7 +38,7 @@ def get_body(filters):
 
     #shared_net = ResUBody(filters)
     #arch =summary(shared_net,torch.rand((1,3,256,256)))
-    shared_net = resnet18(False)
+    shared_net = resnet34(False)
     #arch =summary(shared_net,torch.rand((1,3,256,256)))
     shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
@@ -52,10 +53,8 @@ def get_head(config, encoder_chan, task,filters):
         return ClassificationHead(encoder_chan,config['Tasks'][task])
 
     if task == "Segmen":
-        #return SegmentationHead(encoder_chan,num_levels=5,out_ch= config['Tasks'][task])
         return SegmentationHead(filters)
-
-
 
     if task == "BB":
         return BBHead(encoder_chan,config['Tasks'][task])
+

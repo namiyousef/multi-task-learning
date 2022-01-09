@@ -1,8 +1,16 @@
 import torch
+from torchvision import transforms
+
+
+
 
 def _prepare_data(data,config):
 
-    data["image"] = data["image"].permute([0,3, 2, 1])
+    transform = transforms.Compose(
+        [
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    data["image"] = transform(data["image"].permute([0,3, 2, 1]))
     
     if "Segmen" in config["Tasks"].keys():
         data["Segmen"] = data["Segmen"].permute([0,3, 2, 1])
@@ -20,5 +28,5 @@ def _update_loss_dict(dict,loss,config):
         dict["Class"].append(loss['Class'].item())
     if "BB" in config["Tasks"].keys():
         dict["BB"].append(loss['BB'].item())
-        
+
     return dict

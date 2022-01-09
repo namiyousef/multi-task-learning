@@ -59,10 +59,10 @@ class IoULoss(nn.Module):
 class L1Loss(nn.Module):
     def __init__(self):
         super(L1Loss, self).__init__()
-        self.loss = nn.L1Loss(reduction="none")
+        self.loss = nn.L1Loss( reduction="none")
 
     def forward(self, out, label):
-        return self.loss(out,label).sum(1).sum()    
+        return self.loss(out,label).sum(1).sum()
 
 
 

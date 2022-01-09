@@ -9,56 +9,33 @@ class ClassificationHead(nn.Sequential):
 
     def __init__(self, in_channels, num_classes):
         super(ClassificationHead, self).__init__()
-        self.conv_layer1 = ConvLayer(128, 256, 2, 1)
-        #self.conv_layer2 = ConvLayer(256, 512, 1, 1)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(256, num_classes)
-        #self.pool = nn.AvgPool2d(8)
-        #self.pool = nn.MaxPool2d(8)
-        #self.soft = nn.Softmax(dim=1)
-        #self.fc1 = nn.Linear(in_features=512, out_features=256)
-        #self.fc2 = nn.Linear(in_features=256, out_features=16)
-        #self.fc3 = nn.Linear(in_features=16, out_features=num_classes)
-
+        self.fc = nn.Linear(512, num_classes)
+        
     def forward(self, inputs,skips):
-        x = self.conv_layer1(inputs)
-        #x = self.conv_layer2(x)
-        x = self.avgpool(x)
+        x = self.avgpool(inputs)
         x = torch.flatten(x, 1)
         x = self.fc(x)
-        #x = self.pool(inputs)
-        #x = torch.flatten(x, 1) # flatten all dimensions except batch
-        #x = self.fc1(x)
-        #x = F.relu(self.fc1(x))
-        #x = F.relu(self.fc2(x))
-        #x = self.fc3(x)
-        #x = self.soft(x)
         return x.double()
 
 class BBHead(nn.Sequential):
 
     def __init__(self, in_channels, num_classes):
         super(BBHead, self).__init__()
-        self.pool = nn.AvgPool2d(8)
-        self.fc1 = nn.Linear(in_features=512, out_features=128)
-        self.fc2 = nn.Linear(in_features=128, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=num_classes)
-
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512, num_classes)
+        
     def forward(self, inputs,skips):
-        x = self.pool(inputs)
+        x = self.avgpool(inputs)
         x = torch.flatten(x, 1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+        x = self.fc(x)
+        return x.double()
 
 class SegmentationHead(nn.Module):
     def __init__(self,filters):
         super(SegmentationHead, self).__init__()
 
         ### NEEDS REWORDING
-
-        #filters=[32, 32, 64, 128]
 
         self.upsample_1 = Upsample(filters[3], filters[3], 2, 2)
         self.decode_conv1 = ConvLayer(filters[3] + filters[2], filters[2], 1, 1)
@@ -69,6 +46,9 @@ class SegmentationHead(nn.Module):
         self.upsample_3 = Upsample(filters[1], filters[1], 2, 2)
         self.decode_conv3 = ConvLayer(filters[1] + filters[0], filters[0], 1, 1)
 
+        self.upsample_4 = Upsample(filters[0], filters[0], 2, 2)
+        self.decode_conv4 = ConvLayer(filters[0]+ filters[0], filters[0], 1, 1)
+        self.decode_conv5 = ConvLayer(filters[0], filters[0], 1, 1)
         self.output_layer = nn.Sequential(
             nn.Conv2d(filters[0], 1, 1, 1),
             nn.Sigmoid(),
@@ -77,11 +57,15 @@ class SegmentationHead(nn.Module):
     def forward(self, x, skips):
         
         x = self.upsample_1(x)
-        x = self.decode_conv1(torch.cat([x, skips[2]], dim=1))
+        x = self.decode_conv1(torch.cat([x, skips[3]], dim=1))
         x = self.upsample_2(x)
-        x = self.decode_conv2(torch.cat([x, skips[1]], dim=1))
+        x = self.decode_conv2(torch.cat([x, skips[2]], dim=1))
         x = self.upsample_3(x)
-        x = self.decode_conv3(torch.cat([x, skips[0]], dim=1))
+        x = self.decode_conv3(torch.cat([x, skips[1]], dim=1))
+        x = self.upsample_4(x)
+        x = self.decode_conv4(torch.cat([x, skips[0]], dim=1))
+        x = self.upsample_4(x)
+        x = self.decode_conv5(x)
         output = self.output_layer(x)
         return output  
 

@@ -21,8 +21,8 @@ MLT_CONFIG = {"Model":"Multi Task","Tasks":{"Class":2},"Loss Lambda":{ "Class":1
 #MLT_CONFIG = {"Model":"Multi Task", "Tasks":{"Segmen":1, "Class":2} }
 
 MINI_BATCH_SIZE = 32
-NUM_EPOCH = 3
-RESU_FILTS = [32,32,64,128]
+NUM_EPOCH = 15
+RESU_FILTS = [64,128,256,512]
 
 ""
 
@@ -36,7 +36,7 @@ net = Model(CONFIG,RESU_FILTS)
 criterion = Criterion(CONFIG)
 
     # get optimizer
-optimizer = torch.optim.Adam(net.parameters(),lr=1e-04)
+optimizer = torch.optim.Adam(net.parameters(),lr=1e-03)
 
     # transform and get data
 train_dataset = get_dataset(CONFIG,"train")
@@ -64,10 +64,7 @@ loss_epoch_dict = {"Seg":[],"Class":[],"BB":[]}
 with torch.no_grad():
     for i,mini_batch in enumerate(test_dataloader):
 
-        #inputs = mini_batch["image"]
-        #inputs = inputs.permute([0,3, 2, 1])
-        #mini_batch["Segmen"] = mini_batch["Segmen"].permute([0,3, 2, 1])
-        #mini_batch["Class"] = torch.reshape(mini_batch["Class"],(-1,)).type(torch.LongTensor)
+        
         mini_batch = _prepare_data(mini_batch,CONFIG)
         inputs = mini_batch["image"]
 
@@ -77,12 +74,9 @@ with torch.no_grad():
 
         loss_epoch_dict = _update_loss_dict(loss_epoch_dict,loss, CONFIG)
 
-        #loss_epoch_dict["Seg"].append(loss['Segmen'].item())
-        #loss_epoch_dict["Class"].append(loss['Class'].item())
-        #loss_epoch_dict["BB"].append(loss['BB'].item())
     
-#seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))
+seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))
 #class_mean = np.mean(np.array(loss_epoch_dict["Class"]))
 #bb_mean = np.mean(np.array(loss_epoch_dict["BB"]))
 #print ("seg mean " + str(seg_mean) + " class mean " + str(class_mean) + " bb mean " + str(bb_mean))
-#print ( " class mean " + str(class_mean))
+print ( " seg mean " + str(seg_mean))
