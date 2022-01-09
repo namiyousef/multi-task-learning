@@ -7,7 +7,7 @@ from train import model_train
 
 
 
-def main(config, epochs=20, batch_size=32):
+def main(config, epochs=1, batch_size=32):
 
     model_config = config['model'] 
     task_config = config['mtl']
@@ -57,5 +57,5 @@ if __name__ == '__main__':
         'mtl': {"Model":"Multi Task","Tasks":{"Class":2,"Segmen":1,"BB":4},"Loss Lambda":{ "Class":1,"Segmen":1,"BB":1}}
     }
 
-    main(config=config, epochs=20, batch_size=32)
+    main(config=config, epochs=1, batch_size=32)
 
