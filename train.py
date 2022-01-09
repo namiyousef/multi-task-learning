@@ -24,8 +24,9 @@ def model_train(config,net,criterion,optimizer,mini_batch_size,train_dataloader,
         loss = criterion(outputs,task_targets)
         loss['total'].backward()
         optimizer.step()
-        train_accuracy += accuracy(mini_batch['Class'], outputs['Class'])
-     
+        if 'Class' in outputs:
+            train_accuracy += accuracy(mini_batch['Class'], outputs['Class'])
+        print(train_accuracy)
         loss_epoch_dict = _update_loss_dict(loss_epoch_dict,loss, config)
 
     _print_epoch_results(loss_epoch_dict , config)

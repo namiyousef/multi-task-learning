@@ -62,7 +62,8 @@ def main(config, epochs=1, batch_size=32,
 
             task_targets = {task: mini_batch[task] for task in task_config["Tasks"].keys()}
             test_output = model_eval(inputs)
-            test_accuracy += accuracy(task_targets['Class'], test_output['Class'])
+            if 'Class' in task_targets:
+                test_accuracy += accuracy(task_targets['Class'], test_output['Class'])
             loss = criterion(test_output, task_targets)
 
             loss_epoch_dict = _update_performance_dict(loss_epoch_dict, loss, test_output,mini_batch,task_config)
@@ -76,13 +77,32 @@ if __name__ == '__main__':
         'mtl': {
             "Model": 'mtl model', # TODO why do we need this?
             "Tasks":{
-                "Class":2,
+                #"Class":2,
                 "Segmen":1,
                 "BB":4
             },
-            "Loss Lambda":{ "Class":1,"Segmen":1,"BB":1}
+            "Loss Lambda":{
+                #"Class":1,
+                "Segmen":1,
+                "BB":1}
+
         }
     }
+
+    """configuration = {
+        'save_params':'s',
+        'encoder': {
+            'name':'resnet34',
+            'params':[64, 128, 256, 512],
+        },
+        'decoders': {
+            'class':{'n_output_features':2, 'loss':'bce'},
+            'seg':{'n_output_features': 1, 'loss':'dice'},
+            'bb':{'n_output_features':'', 'loss':'l1'}
+        },
+        'weights': '',
+    }
+"""
 
 
     main(config=config, epochs=1, batch_size=32)

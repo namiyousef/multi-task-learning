@@ -35,7 +35,7 @@ class ConvLayer(nn.Module):
 
 
 def get_body(filters):
-
+    # TODO so we're using entire resnet?? Not just the decoder?
     shared_net = resnet34(False)
     shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
