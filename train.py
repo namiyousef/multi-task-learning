@@ -1,7 +1,8 @@
 import torch
 import numpy as np
-from data.data import OxfordPetDataset, _get_data
-from utils import _prepare_data , _update_loss_dict
+#from data.data import OxfordPetDataset, _get_data
+from data.data import OxfordPetDataset
+from utils import _prepare_data , _update_loss_dict, _print_epoch_results
 
 def model_train(config,net,criterion,optimizer,mini_batch_size,train_dataloader,val_dataloader):
 
@@ -22,20 +23,11 @@ def model_train(config,net,criterion,optimizer,mini_batch_size,train_dataloader,
         loss = criterion(outputs,task_targets)
         loss['total'].backward()
         optimizer.step()
-        
-        #backward
-        print(loss['Class'].item())
-        
+     
         loss_epoch_dict = _update_loss_dict(loss_epoch_dict,loss, config)
 
-    
-    
-    #seg_mean = np.mean(np.array(loss_epoch_dict["Seg"]))
-    class_mean = np.mean(np.array(loss_epoch_dict["Class"]))
-    
-    # bb_mean = np.mean(np.array(loss_epoch_dict["BB"]))
-    #print ("seg mean " + str(seg_mean) + " class mean " + str(class_mean) + " bb mean " + str(bb_mean))
-    print (" class mean " + str(class_mean) )
+    _print_epoch_results(loss_epoch_dict , config)
+
     return net
         
 

@@ -36,10 +36,7 @@ class ConvLayer(nn.Module):
 
 def get_body(filters):
 
-    #shared_net = ResUBody(filters)
-    #arch =summary(shared_net,torch.rand((1,3,256,256)))
     shared_net = resnet34(False)
-    #arch =summary(shared_net,torch.rand((1,3,256,256)))
     shared_net_chan = filters[3]
     return shared_net ,shared_net_chan
     

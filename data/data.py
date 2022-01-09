@@ -27,40 +27,27 @@ class OxfordPetDataset(Dataset):
         self.seg_task= "Segmen" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
-        
-
-        self.num_minibatches = self.__len__() // mini_batch_size
-        #self.indices_split = np.split(np.random.shuffle(np.linspace\
-            #(0, self.__len__(),self.__len__() )),self.num_minibatches)
-        self.indices = np.arange(0, self.__len__() )
-        np.random.shuffle(self.indices)
-        self.indices_split = np.array_split(self.indices,self.num_minibatches)
-        self.test =1
-
-
-
+    
 
     def __getitem__(self,index):
         sample = {}
 
         _img = self._load_data(index,self.image_dir)
-        #sample['image'] = _img
+
         sample['image'] = torch.from_numpy(_img).float()
 
         if self.seg_task:
             _seg = self._load_data(index,self.seg_dir)
             sample['Segmen'] = torch.from_numpy(_seg).float()
-            #sample['seg'] = _seg
 
         if self.bb_task:
             _bb = self._load_data(index,self.bbox_dir)
             sample['BB'] = torch.from_numpy(_bb).float()
-            #sample['bb'] = _bb 
 
         if self.bin_task:
             _bin = self._load_data(index,self.bin_dir)
             sample['Class'] = torch.from_numpy(_bin).float()
-            # sample['bin'] = _bin 
+            
 
         return sample  
 
@@ -79,16 +66,7 @@ class OxfordPetDataset(Dataset):
             elems = file[key][ index]
             return  elems
 
-    def _load_segmen_random():
-        return 1
 
-
-    def _get_num_minibatch(self):
-        return self.num_minibatches
-
-    def _getindices_(self,index):
-    
-        return self.indices_split[index]
 
     
 #### UTIL FUNCTS #########
@@ -103,10 +81,5 @@ def get_dataloader(dataset, batch_size):
 
     dataloader = DataLoader(dataset, batch_size, shuffle=True)
     return dataloader
-    #return 1
-
-def _get_data(dataset,index):
-
-    indices = np.sort(dataset._getindices_(index))
-    return dataset.__getitem__(indices)
+   
 
