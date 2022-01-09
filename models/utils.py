@@ -4,7 +4,7 @@ from models.resnet import resnet18, resnet34
 from models.heads import ClassificationHead, SegmentationHead, BBHead
 from models.bodys import ResUBody, ResUBodyNEW
 import torch.nn as nn
-from torchsummaryX import summary
+#from torchsummaryX import summary
 
 
 class ConvLayer(nn.Module):

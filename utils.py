@@ -53,9 +53,6 @@ def _update_performance_dict(dict,loss,output,batch,config):
     if "Segmen" in config["Tasks"].keys():
         dict["Seg"].append(loss['Segmen'].item())
     if "Class" in config["Tasks"].keys():
-        #test_class = torch.argmax(output["Class"], dim=1)
-        #accuracy = (test_class == batch["Class"]).sum()/len(32)
-        #dict["Class"].append(accuracy)
         dict["Seg"].append(loss['Class'].item())
     if "BB" in config["Tasks"].keys():
         dict["BB"].append(loss['BB'].item())

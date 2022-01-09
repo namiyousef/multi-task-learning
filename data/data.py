@@ -11,7 +11,7 @@ class OxfordPetDataset(Dataset):
     def __init__(self,config,split,mini_batch_size):
         
 
-        root = "/home/cwatts/COMP0090/Coursework2/data/datasets-oxpet/"
+        root = "datasets/data_new/"
         root = root + split
         self.split = split
         img_path = r'images.h5'

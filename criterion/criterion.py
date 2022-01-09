@@ -22,7 +22,7 @@ def get_loss(task):
     return
 
 class Criterion(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, weights=None):
         super(Criterion, self).__init__()
         self.tasks = config["Tasks"].keys()
         self.lambdas = config["Loss Lambda"]
@@ -33,3 +33,6 @@ class Criterion(nn.Module):
         loss_dict = {task: self.loss_fncts[task](prediction[task], truth[task]) for task in self.tasks}
         loss_dict['total'] = torch.sum(torch.stack([loss_dict[task]*self.lambdas[task] for task in self.tasks]))
         return loss_dict
+
+# TODO add scaling
+# TODO add weighting option

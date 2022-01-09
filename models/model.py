@@ -1,7 +1,6 @@
 import torch
-import torch.nn as nn
-
-from models.utils import get_body, get_heads
+from torch import nn
+from models.utils import get_body, get_heads, get_head
 import torch.nn.functional as F
 
 class Model(nn.Module):
@@ -11,8 +10,8 @@ class Model(nn.Module):
         self.model = config["Model"]
         self.tasks = config["Tasks"].keys()
         self.encoder, self.encoder_chan = get_body(filters)
-        self.decoders = get_heads(config,self.tasks,self.encoder_chan,filters)
-         
+        self.decoders = get_heads(config, self.tasks, self.encoder_chan,filters)
+
 
     def forward(self, x):
         output, skips = self.encoder(x)
