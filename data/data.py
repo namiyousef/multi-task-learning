@@ -6,11 +6,15 @@ import h5py
 import os
 import numpy as np
 
+class OxpetDataset(Dataset):
+    def __init__(self):
+        pass
+
+
 class OxfordPetDataset(Dataset):
 
-    def __init__(self,config,split,mini_batch_size):
-        
-
+    def __init__(self,config,split,mini_batch_size, transform=None):
+        # TODO minibatchsize not used?
         root = "datasets/data_new/"
         root = root + split
         self.split = split
@@ -27,6 +31,8 @@ class OxfordPetDataset(Dataset):
         self.seg_task= "Segmen" in config["Tasks"].keys()
         self.bb_task= "BB" in config["Tasks"].keys()
         self.bin_task= "Class" in config["Tasks"].keys()
+
+        self.transform = transform
     
 
     def __getitem__(self,index):
@@ -34,6 +40,7 @@ class OxfordPetDataset(Dataset):
 
         _img = self._load_data(index,self.image_dir)
 
+        # TODO how to make this dynamic, and also allowing for multiple transforms to occur?
         sample['image'] = torch.from_numpy(_img).float()
 
         if self.seg_task:
@@ -47,7 +54,11 @@ class OxfordPetDataset(Dataset):
         if self.bin_task:
             _bin = self._load_data(index,self.bin_dir)
             sample['Class'] = torch.from_numpy(_bin).float()
-            
+
+
+        if self.transform is not None:
+            # TODO need to make sure it only transforms the images, not the outputs, but in a dynamic manner
+            pass
 
         return sample  
 
