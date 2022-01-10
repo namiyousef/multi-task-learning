@@ -46,7 +46,7 @@ def model_train(config, model, criterion, optimizer, train_dataloader, val_datal
             pass
 
     _print_epoch_results(loss_epoch_dict , config)
-    print(f'Training accuracy: {accuracy/(i+1):.3g}')
+    print(f'Training accuracy: {train_accuracy/(i+1):.3g}')
 
     return model
         
