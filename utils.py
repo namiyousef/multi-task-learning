@@ -53,7 +53,7 @@ def _update_performance_dict(dict,loss,output,batch,config):
     if "Segmen" in config["Tasks"].keys():
         dict["Seg"].append(loss['Segmen'].item())
     if "Class" in config["Tasks"].keys():
-        dict["Seg"].append(loss['Class'].item())
+        dict["Class"].append(loss['Class'].item())
     if "BB" in config["Tasks"].keys():
         dict["BB"].append(loss['BB'].item())
 
