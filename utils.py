@@ -58,3 +58,14 @@ def _update_performance_dict(dict,loss,output,batch,config):
         dict["BB"].append(loss['BB'].item())
 
     return dict
+
+
+# DO NOT USE YET
+# code for building models from string names. Currently have no need for this, but can be a useful way to quickly build models
+def _get_model(model_name):
+    model_components = model_name.split('_')
+    decoder = model_components[0]
+    tasks = model_components[1:]
+    filters = 0 # TODO get decoder default fitlers
+    # get default model weights
+    pass

@@ -27,9 +27,9 @@ class Criterion(nn.Module):
         self.tasks = config["Tasks"].keys()
         self.lambdas = config["Loss Lambda"]
         self.loss_fncts = torch.nn.ModuleDict({task: get_loss(task) for task in self.tasks})
-
     
     def forward(self, prediction, truth):
+        # TODO not convinced. Are we sure that when we do loss.backward(), that is bases it on the total sum?
         loss_dict = {task: self.loss_fncts[task](prediction[task], truth[task]) for task in self.tasks}
         loss_dict['total'] = torch.sum(torch.stack([loss_dict[task]*self.lambdas[task] for task in self.tasks]))
         return loss_dict
