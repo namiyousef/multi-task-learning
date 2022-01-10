@@ -1,15 +1,29 @@
 import torch
 from utils import _prepare_data, _update_loss_dict, _update_performance_dict, _print_epoch_results
 from models.model import Model
+from models import model
 from criterion.criterion import Criterion
-from criterion.metrics import accuracy
+from criterion.metric_functions import accuracy
+from criterion import metric_functions
 from data.data import get_dataloader, get_dataset
 from train import model_train
-
+configuration = {
+        'save_params':'s',
+        'encoder': {
+            'name':'resnet34',
+            'params':[64, 128, 256, 512],
+        },
+        'decoders': {
+            'class':{'n_output_features':2, 'loss':'bce'},
+            'seg':{'n_output_features': 1, 'loss':'dice'},
+            'bb':{'n_output_features':'', 'loss':'l1'}
+        },
+        'weights': '',
+    }
 
 
 def main(config, epochs=1, batch_size=32,
-         metrics=None, validation_data=True): # TODO later change to false!
+         metrics=None, losses=None, validation_data=True): # TODO later change to false!
     """
     :param config:
     # either dict or string. If string will use configuration that exists. If dict will build the model
@@ -19,11 +33,10 @@ def main(config, epochs=1, batch_size=32,
     :return:
     """
     if isinstance(config, str):
-        # TODO get model
-        pass
+        net = getattr(model, config)()
     else:
-        # TODO build model
         pass
+        net = _build_model(config) # TODO needs changing.
 
     model_config = config['model']
     task_config = config['mtl']
@@ -42,13 +55,21 @@ def main(config, epochs=1, batch_size=32,
     if validation_data:
         val_dataset = get_dataset(task_config, "val")
         val_dataloader = get_dataloader(val_dataset, batch_size)
+
+    # TODO can even add losses here! Just need to think of a smart way to do it with an if statement
+    callable_metrics = {
+        task : [getattr(metric_functions, metric) for metric in metric_names] for task, metric_names in metrics.items()
+    }
     # train loop
 
     print("Train loop started...")
 
     for i, epoch in enumerate(range(epochs)):
         print(f"Epoch {i+1}") # TODO beautify this with verbose later
-        model_eval = model_train(task_config, net, criterion, optimizer, batch_size, train_dataloader, val_dataloader)
+        model_eval = model_train(
+            config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader, metrics=callable_metrics
+        )
 
     print("Test loop started...")
     model_eval.eval()
@@ -89,21 +110,18 @@ if __name__ == '__main__':
         }
     }
 
-    """configuration = {
-        'save_params':'s',
-        'encoder': {
-            'name':'resnet34',
-            'params':[64, 128, 256, 512],
-        },
-        'decoders': {
-            'class':{'n_output_features':2, 'loss':'bce'},
-            'seg':{'n_output_features': 1, 'loss':'dice'},
-            'bb':{'n_output_features':'', 'loss':'l1'}
-        },
-        'weights': '',
-    }
-"""
-
-
     main(config=config, epochs=1, batch_size=32)
 
+
+
+# TODO for later, DO NOT USE
+def _build_multi_criterion():
+    pass
+
+def _build_model(config):
+    encoder_name, encoder_params = configuration['encoder'].values()
+    encoder = getattr(bodys, encoder_name)(encoder_params) # TODO maybe kwargs this for robustness
+    decoder_input_features = encoder_params[-1]
+    decoders = configuration['decoders']
+    decoders = {
+    }
