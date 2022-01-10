@@ -21,6 +21,16 @@ configuration = {
         'weights': '',
     }
 
+# TODO don't like this, would like this to be in one place only. Currently also done in train.py!
+CUDA_AVAILABLE = torch.cuda.is_available()
+
+if CUDA_AVAILABLE:
+    device = torch.device('cuda:0')
+    print('CUDA device detected. Running on GPU.')
+else:
+    device = torch.device('cpu')
+    print('CUDA device not detected. Running on CPU instead.')
+
 
 def main(config, epochs=1, batch_size=32,
          metrics=None, losses=None, validation_data=True): # TODO later change to false!
@@ -79,12 +89,12 @@ def main(config, epochs=1, batch_size=32,
         for i, mini_batch in enumerate(test_dataloader):
 
             mini_batch = _prepare_data(mini_batch, task_config)
-            inputs = mini_batch["image"]
+            inputs = mini_batch["image"].to(device)
 
-            task_targets = {task: mini_batch[task] for task in task_config["Tasks"].keys()}
+            task_targets = {task: mini_batch[task].to(device) for task in task_config["Tasks"].keys()}
             test_output = model_eval(inputs)
             if 'Class' in task_targets:
-                test_accuracy += accuracy(task_targets['Class'], test_output['Class'])
+                test_accuracy += accuracy(task_targets['Class'].to(device), test_output['Class'])
             loss = criterion(test_output, task_targets)
 
             loss_epoch_dict = _update_performance_dict(loss_epoch_dict, loss, test_output,mini_batch,task_config)
