@@ -3,7 +3,7 @@ import numpy as np
 #from data.data import OxfordPetDataset, _get_data
 from data.data import OxfordPetDataset
 from utils import _prepare_data , _update_loss_dict, _print_epoch_results
-from criterion.metrics import accuracy
+from criterion.metric_functions import accuracy
 
 
 def model_train(config, model, criterion, optimizer, train_dataloader, val_dataloader=None, metrics=None):
@@ -13,9 +13,9 @@ def model_train(config, model, criterion, optimizer, train_dataloader, val_datal
 
     loss_epoch_dict = {"Seg":[],"Class":[],"BB":[]}
     # TODO metrics needs to be dynamically created... it should at least have the losses?
-    metrics_epoch_dict = {
-        task: [0] * len(metric_names) for task, metric_names in metrics.items()
-    }
+    #metrics_epoch_dict = {
+    #    task: [0] * len(metric_names) for task, metric_names in metrics.items()
+    #}
     train_accuracy = 0
     for i, mini_batch in enumerate(train_dataloader):
         

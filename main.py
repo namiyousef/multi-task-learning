@@ -36,7 +36,7 @@ def main(config, epochs=1, batch_size=32,
         net = getattr(model, config)()
     else:
         pass
-        net = _build_model(config) # TODO needs changing.
+        #net = _build_model(config) # TODO needs changing.
 
     model_config = config['model']
     task_config = config['mtl']
@@ -57,9 +57,9 @@ def main(config, epochs=1, batch_size=32,
         val_dataloader = get_dataloader(val_dataset, batch_size)
 
     # TODO can even add losses here! Just need to think of a smart way to do it with an if statement
-    callable_metrics = {
-        task : [getattr(metric_functions, metric) for metric in metric_names] for task, metric_names in metrics.items()
-    }
+    #callable_metrics = {
+    #    task : [getattr(metric_functions, metric) for metric in metric_names] for task, metric_names in metrics.items()
+    #}
     # train loop
 
     print("Train loop started...")
@@ -68,7 +68,7 @@ def main(config, epochs=1, batch_size=32,
         print(f"Epoch {i+1}") # TODO beautify this with verbose later
         model_eval = model_train(
             config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader, metrics=callable_metrics
+            val_dataloader=val_dataloader, #metrics=callable_metrics
         )
 
     print("Test loop started...")
