@@ -97,9 +97,9 @@ def main(config, epochs=1, batch_size=32,
                 test_accuracy += accuracy(task_targets['Class'].to(device), test_output['Class'])
             loss = criterion(test_output, task_targets)
 
-            loss_epoch_dict = _update_performance_dict(loss_epoch_dict, loss, test_output,mini_batch,task_config)
+            perfomance_dict = _update_performance_dict(perfomance_dict, loss, test_output,mini_batch,task_config)
 
-    _print_epoch_results(perfomance_dict, config)
+    _print_epoch_results(perfomance_dict, config['mtl'])
     print(f'Test Accuracy: {test_accuracy/(i+1)}')
 
 if __name__ == '__main__':
