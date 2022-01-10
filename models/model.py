@@ -26,17 +26,17 @@ class HardMTLModel(nn.Module):
     :param weights:
     :type weights:
     """
-    def __init__(self, encoder, decoders, weights=None):
+    def __init__(self, encoder, decoders):
         super(HardMTLModel, self).__init__()
         self.encoder = encoder
         self.decoders = torch.nn.ModuleDict({task: decoder for task, decoder in decoders.items()})
-        self.weights = [weight for weight in weights] if weights is not None else [1] * len(decoders)
 
     def forward(self, x):
         output, skips = self.encoder(x) # TODO the encoder MAY not accept skips... need to make this robust
         return {
             task: decoder(output, skips) if decoder.has_skips else decoder(output) for task, decoder in self.decoders.items()
         }
+
 
 def resnet34_class():
     pass
