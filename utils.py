@@ -60,12 +60,13 @@ def _update_performance_dict(dict,loss,output,batch,config):
     return dict
 
 
-# DO NOT USE YET
-# code for building models from string names. Currently have no need for this, but can be a useful way to quickly build models
-def _get_model(model_name):
-    model_components = model_name.split('_')
-    decoder = model_components[0]
-    tasks = model_components[1:]
-    filters = 0 # TODO get decoder default fitlers
-    # get default model weights
-    pass
+def _get_device():
+    CUDA_AVAILABLE = torch.cuda.is_available()
+
+    if CUDA_AVAILABLE:
+        device = torch.device('cuda:0')
+        print('CUDA device detected. Running on GPU.')
+    else:
+        device = torch.device('cpu')
+        print('CUDA device not detected. Running on CPU instead.')
+    return device
