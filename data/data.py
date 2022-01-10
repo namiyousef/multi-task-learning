@@ -56,9 +56,9 @@ class OxfordPetDataset(Dataset):
         if self.split == "train":
             return 2210
         if self.split == "val":
-            return 700
+            return 738
         if self.split == "test":
-            return 700   
+            return 738
 
     def _load_data(self,index,dir):
         with  h5py.File(dir , 'r') as file:
