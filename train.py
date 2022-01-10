@@ -4,7 +4,7 @@ import numpy as np
 from data.data import OxfordPetDataset
 from utils import _prepare_data , _update_loss_dict, _print_epoch_results
 from criterion.metric_functions import accuracy
-
+import time
 
 CUDA_AVAILABLE = torch.cuda.is_available()
 
@@ -28,7 +28,7 @@ def model_train(config, model, criterion, optimizer, train_dataloader, val_datal
     #}
     train_accuracy = 0
     for i, mini_batch in enumerate(train_dataloader):
-        
+        s = time.time()
         mini_batch = _prepare_data(mini_batch,config)
         inputs = mini_batch["image"].to(device)
 
@@ -41,7 +41,7 @@ def model_train(config, model, criterion, optimizer, train_dataloader, val_datal
         if 'Class' in outputs:
             train_accuracy += accuracy(mini_batch['Class'].to(device), outputs['Class'])
         loss_epoch_dict = _update_loss_dict(loss_epoch_dict,loss, config)
-
+        print(f'Minibatch {i+1} complete. Time taken: {time.time() - s}')
         for task, output in outputs.items():
             pass
 
