@@ -16,6 +16,7 @@ configuration = {
             'params':[64, 128, 256, 512],
         },
         'decoders': {
+            # TODO must call them class, seg or bb... no other support provided...
             'class':{'n_output_features':2, 'loss':'bce'},
             'seg':{'n_output_features': 1, 'loss':'dice'},
             'bb':{'n_output_features':'', 'loss':'l1'}
@@ -34,7 +35,6 @@ if CUDA_AVAILABLE:
 else:
     device = torch.device('cpu')
     print('CUDA device not detected. Running on CPU instead.')
-
 class RunTorchModel:
     """
     loss : needs to apply to be self contained. E.g. with the data that you provide, it should be able to perform backwards!
@@ -48,7 +48,6 @@ class RunTorchModel:
         # TODO metrics
         # TODO would need to save losses?
         pass
-
     def train(self, trainloader, epochs=1, batch_size=32, valloader=None, verbose=0, metrics=None):
 
         print('Training model...')
