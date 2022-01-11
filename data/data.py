@@ -1,21 +1,123 @@
 #from torch._C import double
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, IterableDataset
 import torch.utils.data as data
 import h5py
 import os
 import numpy as np
+import time
+import random
+def _load_h5_file(path):
+    with h5py.File(path, 'r') as f:
+        key = f.keys()
 
+class OxpetDatasetIterable(IterableDataset):
+    task_to_file = {
+        'class': 'binary.h5',
+        'seg': 'masks.h5',
+        'bb': 'bboxes.h5'
+    }
+    # TODO think about adding custom tasks with the same data
+    # TODO think about replacing tasks, about arbitrary combinations also?
+    def __init__(self, dir_path, tasks, transform=None, target_transforms=None):
+
+        super(OxpetDatasetIterable, self).__init__() # TODO needed?
+
+        self.dir_path = dir_path
+        s = time.time()
+        self.inputs = self._load_h5_file_with_data('images.h5')
+        print(time.time())
+        self.targets = {
+            task: self._load_h5_file_with_data(self.task_to_file[task]) for task in tasks if task in self.task_to_file
+        }
+
+        self.transform = transform
+
+
+    def __iter__(self):
+        s = time.time()
+        inputs = self.inputs['data']
+        """print(time.time() - s)
+        if self.transform:
+            inputs = self.transform(inputs) # TODO need to test transform
+        else:
+            s = time.time()
+            inputs = torch.from_numpy(inputs).float()
+            print(inputs.shape)
+            print(time.time() - s)
+
+        s = time.time()
+        targets = {
+            task: torch.from_numpy(self.targets[task]['data'][index]).float() for task in self.targets
+        }
+        print(time.time() -s)"""
+        return iter(inputs)
+
+
+    def __len__(self):
+        return self.inputs['data'].shape[0]
+
+    def _load_h5_file_with_data(self, file_name):
+        path = os.path.join(self.dir_path, file_name)
+        file = h5py.File(path)
+        key = list(file.keys())[0]
+        data = file[key]
+        return dict(file=file, data=data)
 class OxpetDataset(Dataset):
-    def __init__(self):
+    task_to_file = {
+        'class': 'binary.h5',
+        'seg': 'masks.h5',
+        'bb': 'bboxes.h5'
+    }
+    # TODO think about adding custom tasks with the same data
+    # TODO think about replacing tasks, about arbitrary combinations also?
+    def __init__(self, dir_path, tasks, transform=None, target_transforms=None):
+
+        super(OxpetDataset, self).__init__() # TODO needed?
+
+        self.dir_path = dir_path
+        self.inputs = self._load_h5_file_with_data('images.h5')
+        self.targets = {
+            task: self._load_h5_file_with_data(self.task_to_file[task]) for task in tasks if task in self.task_to_file
+        }
+
+        self.transform = transform
+
+
+    def __getitem__(self, index):
+        #print(index)
+        s = time.time()
+        inputs = self.inputs['data'][index]
+        print(time.time() - s, index[0], index[-1], len(index))
+        if len(index) != 32:
+            raise Exception()
+        if self.transform:
+            inputs = self.transform(inputs) # TODO need to test transform
+        else:
+            inputs = torch.from_numpy(inputs).float()
+
+        targets = {
+            task: torch.from_numpy(self.targets[task]['data'][index]).float() for task in self.targets
+        }
+        return (inputs, targets)
+
+    def __len__(self):
+        return self.inputs['data'].shape[0]
+
+    def _load_h5_file_with_data(self, file_name):
+        path = os.path.join(self.dir_path, file_name)
+        file = h5py.File(path)
+        key = list(file.keys())[0]
+        data = file[key]
+        return dict(file=file, data=data)
+
+    def clear_files(self):
         pass
-
-
 class OxfordPetDataset(Dataset):
 
-    def __init__(self,config,split,mini_batch_size, transform=None):
+    def __init__(self,config,split, mini_batch_size, transform=None):
         # TODO minibatchsize not used?
-        root = "datasets/data_new/"
+        root = "../datasets/data_new/"
         root = root + split
         self.split = split
         img_path = r'images.h5'
@@ -71,6 +173,7 @@ class OxfordPetDataset(Dataset):
         if self.split == "test":
             return 738
 
+    # I believe this is loading the data each time.. can you measure memory usag ?
     def _load_data(self,index,dir):
         with  h5py.File(dir , 'r') as file:
             key = list(file.keys())[0]
