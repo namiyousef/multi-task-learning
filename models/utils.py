@@ -3,7 +3,6 @@ import torch
 from models.resnet import resnet34
 from models.heads import ClassificationHead, SegmentationHead, BBHead
 from models.bodys import ResUBody, ResUBodyNEW
-from models.model import HardMTLModel
 import torch.nn as nn
 
 
@@ -51,44 +50,3 @@ def get_head(config, encoder_chan, task,filters):
 
     if task == "BB":
         return BBHead(encoder_chan,config['Tasks'][task])
-
-
-def resnet34_seg_class_bb():
-    encoder = resnet34(False)
-    filters = [64, 128, 256, 512]
-    decoder_out_channels = filters[-1]
-    decoders = {
-        'class':ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
-        'seg': SegmentationHead(filters=filters),
-        'bb': BBHead(in_channels=decoder_out_channels, num_classes=4)
-    }
-    return HardMTLModel(encoder, decoders)
-
-def resnet34_seg_class():
-    encoder = resnet34(False)
-    filters = [64, 128, 256, 512]
-    decoder_out_channels = filters[-1]
-    decoders = {
-        'class': ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
-        'seg': SegmentationHead(filters=filters),
-    }
-    return HardMTLModel(encoder, decoders)
-
-def resnet34_seg_bb():
-    encoder = resnet34(False)
-    filters = [64, 128, 256, 512]
-    decoder_out_channels = filters[-1]
-    decoders = {
-        'class':ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
-        'bb': BBHead(in_channels=decoder_out_channels, num_classes=4)
-    }
-    return HardMTLModel(encoder, decoders)
-
-def resnet34_seg():
-    encoder = resnet34(False)
-    filters = [64, 128, 256, 512]
-    decoder_out_channels = filters[-1]
-    decoders = {
-        'seg': SegmentationHead(filters=filters),
-    }
-    return HardMTLModel(encoder, decoders)

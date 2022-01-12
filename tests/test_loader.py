@@ -13,7 +13,7 @@ def _load_data(index, dir):
 
 class TestLoader(unittest.TestCase):
 
-    '''def test_datasets_equal(self):
+    def test_datasets_equal(self):
         """Using the same loader, tests that both datasets are equal
         """
         # prepare first dataset
@@ -84,10 +84,11 @@ class TestLoader(unittest.TestCase):
         for (inputs1, targets1), (inputs2, targets2) in zip(batchloader, normalloader):
             assert torch.equal(inputs1, inputs2)
             for target1, target2 in zip(targets1.values(), targets2.values()):
-                assert torch.equal(target1, target2)'''
+                assert torch.equal(target1, target2)
 
     def test_random_batch_sampling_out_shuffle(self):
         """tests if random batch shuffling works as expected
+        # TODO currenlty fails because random seeeds not correct
         """
         dir_path = '../datasets/data_new/train/'
         dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
