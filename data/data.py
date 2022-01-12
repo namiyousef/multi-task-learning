@@ -1,68 +1,58 @@
-#from torch._C import double
 import torch
-from torch.utils.data import Dataset, DataLoader, IterableDataset
-import torch.utils.data as data
+from torch.utils.data import Dataset, DataLoader, Sampler
 import h5py
 import os
-import numpy as np
 import time
-import random
-def _load_h5_file(path):
-    with h5py.File(path, 'r') as f:
-        key = f.keys()
-
-class OxpetDatasetIterable(IterableDataset):
-    task_to_file = {
-        'class': 'binary.h5',
-        'seg': 'masks.h5',
-        'bb': 'bboxes.h5'
-    }
-    # TODO think about adding custom tasks with the same data
-    # TODO think about replacing tasks, about arbitrary combinations also?
-    def __init__(self, dir_path, tasks, transform=None, target_transforms=None):
-
-        super(OxpetDatasetIterable, self).__init__() # TODO needed?
-
-        self.dir_path = dir_path
-        s = time.time()
-        self.inputs = self._load_h5_file_with_data('images.h5')
-        print(time.time())
-        self.targets = {
-            task: self._load_h5_file_with_data(self.task_to_file[task]) for task in tasks if task in self.task_to_file
-        }
-
-        self.transform = transform
 
 
-    def __iter__(self):
-        s = time.time()
-        inputs = self.inputs['data']
-        """print(time.time() - s)
-        if self.transform:
-            inputs = self.transform(inputs) # TODO need to test transform
-        else:
-            s = time.time()
-            inputs = torch.from_numpy(inputs).float()
-            print(inputs.shape)
-            print(time.time() - s)
+# TODO combine RandomBatchSampler and SequentialSampler using in_batch and out_batch shuffle params!
+class BatchSequentialSampler(Sampler):
+    """Generalised sampling class to enable
+    """
+    def __init__(self, dataset, batch_size, shuffle='both'):
+        assert shuffle in ['both', 'batch', 'in_batch']
+        self.shuffle = shuffle
+        self.batch_size = batch_size
+        self.dataset_length = dataset
+        self.n_batches = self.dataset_length / self.batch_size
+        self.batch_ids = torch.range(0, int(self.n_batches))
+        if shuffle == 'batch' or shuffle == 'both':
+            self.batch_ids = self.batch_ids[torch.randperm(int(self.n_batches))]
 
-        s = time.time()
-        targets = {
-            task: torch.from_numpy(self.targets[task]['data'][index]).float() for task in self.targets
-        }
-        print(time.time() -s)"""
-        return iter(inputs)
+    def __init__(self):
+        # TODO self.batch_size or self.dataset_length??
+        pass
 
+class RandomBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size, in_batch_shuffle=True):
+        self.in_batch_shuffle = in_batch_shuffle
+        self.batch_size = batch_size
+        self.dataset_length = len(dataset)
+        self.n_batches = self.dataset_length / self.batch_size
+
+        self.batch_ids = torch.randperm(int(self.n_batches))
 
     def __len__(self):
-        return self.inputs['data'].shape[0]
+        return self.batch_size
 
-    def _load_h5_file_with_data(self, file_name):
-        path = os.path.join(self.dir_path, file_name)
-        file = h5py.File(path)
-        key = list(file.keys())[0]
-        data = file[key]
-        return dict(file=file, data=data)
+    def __iter__(self):
+        for id in self.batch_ids:
+            idx = torch.range(id * self.batch_size, (id + 1) * self.batch_size)
+            if self.in_batch_shuffle:
+                idx = self._shuffle_ids(idx)
+            for index in idx:
+                yield index
+        if int(self.n_batches) < self.n_batches:
+            idx = torch.range(int(self.n_batches) * self.batch_size, self.dataset_length)
+            if self.in_batch_shuffle:
+                idx = self._shuffle_ids(idx)
+            for index in idx:
+                yield index
+
+    def _shuffle_ids(self, ids):
+        return ids[torch.randperm(len(ids))]
+
+
 class OxpetDataset(Dataset):
     task_to_file = {
         'class': 'binary.h5',
@@ -73,7 +63,7 @@ class OxpetDataset(Dataset):
     # TODO think about replacing tasks, about arbitrary combinations also?
     def __init__(self, dir_path, tasks, transform=None, target_transforms=None):
 
-        super(OxpetDataset, self).__init__() # TODO needed?
+        super(OxpetDataset, self).__init__()
 
         self.dir_path = dir_path
         self.inputs = self._load_h5_file_with_data('images.h5')
@@ -85,12 +75,7 @@ class OxpetDataset(Dataset):
 
 
     def __getitem__(self, index):
-        #print(index)
-        s = time.time()
         inputs = self.inputs['data'][index]
-        print(time.time() - s, index[0], index[-1], len(index))
-        if len(index) != 32:
-            raise Exception()
         if self.transform:
             inputs = self.transform(inputs) # TODO need to test transform
         else:
