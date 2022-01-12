@@ -3,8 +3,6 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 import h5py
 import os
 import time
-
-
 # TODO combine RandomBatchSampler and SequentialSampler using in_batch and out_batch shuffle params!
 class BatchSequentialSampler(Sampler):
     """Generalised sampling class to enable
@@ -24,8 +22,7 @@ class BatchSequentialSampler(Sampler):
         pass
 
 class RandomBatchSampler(Sampler):
-    def __init__(self, dataset, batch_size, in_batch_shuffle=True):
-        self.in_batch_shuffle = in_batch_shuffle
+    def __init__(self, dataset, batch_size):
         self.batch_size = batch_size
         self.dataset_length = len(dataset)
         self.n_batches = self.dataset_length / self.batch_size
@@ -37,20 +34,13 @@ class RandomBatchSampler(Sampler):
 
     def __iter__(self):
         for id in self.batch_ids:
-            idx = torch.range(id * self.batch_size, (id + 1) * self.batch_size)
-            if self.in_batch_shuffle:
-                idx = self._shuffle_ids(idx)
+            idx = torch.arange(id * self.batch_size, (id + 1) * self.batch_size)
             for index in idx:
-                yield index
+                yield int(index)
         if int(self.n_batches) < self.n_batches:
-            idx = torch.range(int(self.n_batches) * self.batch_size, self.dataset_length)
-            if self.in_batch_shuffle:
-                idx = self._shuffle_ids(idx)
+            idx = torch.arange(int(self.n_batches) * self.batch_size, self.dataset_length)
             for index in idx:
-                yield index
-
-    def _shuffle_ids(self, ids):
-        return ids[torch.randperm(len(ids))]
+                yield int(index)
 
 
 class OxpetDataset(Dataset):
@@ -75,6 +65,7 @@ class OxpetDataset(Dataset):
 
 
     def __getitem__(self, index):
+        print(index[0], index[-1])
         inputs = self.inputs['data'][index]
         if self.transform:
             inputs = self.transform(inputs) # TODO need to test transform
