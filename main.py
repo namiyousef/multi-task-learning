@@ -35,20 +35,61 @@ if CUDA_AVAILABLE:
 else:
     device = torch.device('cpu')
     print('CUDA device not detected. Running on CPU instead.')
+
+
+class SimpleCombinedLoss(torch.nn.Module):
+    def __init__(self, loss_dict, weights=None):
+        self.loss_dict = loss_dict
+        if weights is None:
+            self.weights = {task: 1 for task in self.loss_dict}
+        else:
+            self.weights = weights
+
+    def forward(self, outputs, targets):
+        losses = {
+            task: weight * loss(outputs, targets) for (task, loss), weight in zip(self.loss_dict.items(), self.weights)
+        }
+
+        return sum(losses.values())
+
+class CombinedLoss(torch.nn.Module):
+    # TODO solve loss problem by subclassing from 'combined loss' class
+    def __init__(self):
+        self.is_combined_loss = True
+        self.losses = None
+    def update_history(self, loss_history):
+        pass
+
+
+class RandomCombinedLoss(torch.nn.Module):
+    # TODO think about how prior runs here, mauybe needs pre-init
+    def __init__(self, loss_dict, prior):
+        self.loss_dict = loss_dict
+        self.prior = prior
+    def forward(self, outputs, targets):
+        losses = {
+            task: weight * loss(outputs, targets) for (task, loss), weight in zip(self.loss_dict.items(), self.prior)
+        }
+        return sum(losses.values())
+
+
 class RunTorchModel:
     """
     loss : needs to apply to be self contained. E.g. with the data that you provide, it should be able to perform backwards!
     """
-    def __init__(self, model, optimizer, loss):
+    def __init__(self, model, optimizer, loss, metrics={}):
         self.model = model
         self.optimizer = optimizer
-        self.loss = loss # TODO need to think about how weights would work with this, in conjunction with history
+        self.loss = loss # TODO need to think about how weights would work with this, in conjunction with history, e.g. getting each loss individually and the weights applied
         self.device = _get_device()
+        self.loss_history = {self.loss.__name__: []} # TODO how to update loss_history for combined and single losses
+        self.metrics = metrics
+        if hasattr(self.loss, 'is_combined_loss'):
+            self.metrics_history = {metric.__name__: [] for task_metrics in metrics for metric in task_metrics}
+        else:
+            self.metrics_history = {metric.__name__: [] for metric in metrics} # TODO also this is wrong, need to deal with multitask or single task case, maybe base on loss subclass?
 
-        # TODO metrics
-        # TODO would need to save losses?
-        pass
-    def train(self, trainloader, epochs=1, batch_size=32, valloader=None, verbose=0, metrics=None):
+    def train(self, trainloader, epochs=1, valloader=None, verbose=0, track_history=False):
 
         print('Training model...')
         self.model.to(self.device)
@@ -63,14 +104,26 @@ class RunTorchModel:
                 inputs = inputs.to(self.device)
                 targets = targets.to(self.device)
 
-                # TODO trainloader MUST split into targets and training data, current strat won't work.
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
                 loss = self.loss(outputs, targets)
+                # make this into a function, because we will need to use it in the testing loop as well, for both val and test
+                # make sure the only inputs you need are outputs, inputs. Make default storing of loss_history
+                if track_history:
+                    self.loss_history[self.loss.__name__].append(loss.item())
+                    if hasattr(self.loss, 'is_combined_loss'):
+                        self.loss.update_history(self.loss_history)
+                        for task in self.metrics:
+                            metrics = self.metrics[task]
+                            for metric in metrics:
+                                self.metrics_history[metric.__name__].append(metric(outputs, targets))
+                    else:
+                        for metric in self.metrics:
+                            self.metrics_history[metric.__name__].append(metric(outputs, targets))
+
                 loss.backward()
                 self.optimizer.step()
                 # metrics here
-
                 # TODO need to have a print loss function for each loss? How do you print individual losses while
                 # maintaining generalisability?
                 end_train = time.time()
@@ -81,6 +134,8 @@ class RunTorchModel:
             # TODO add valloader
 
             if valloader:
+                # TODO needs to create entry for the validation metrics, perhaps with val_metricname, or completely different entry?
+                # TODO need to add validation histories and metrics as well!
                 pass
 
             end_epoch = time.time()
@@ -95,7 +150,7 @@ class RunTorchModel:
 
 
 
-    def test(self):
+    def test(self, testloader, verbose=0, track_history=False):
         pass
 
     def save_model(self):
@@ -181,25 +236,74 @@ def main(config, epochs=1, batch_size=32,
     print(f'Test Accuracy: {test_accuracy/(i+1)}')
 
 if __name__ == '__main__':
-    config = {
-        'model': [64, 128, 256, 512],
-        'mtl': {
-            "Model": 'mtl model', # TODO why do we need this?
-            "Tasks":{
-                "Class":2,
-                #"Segmen":1,
-                #"BB":4
-            },
-            "Loss Lambda":{
-                "Class":1,
-                #"Segmen":1,
-                #"BB":1
-                }
+    import re
+    def _convert_class_to_func(cls_name):
+        cls_comps = re.findall('[A-Z][^A-Z]*', cls_name)
+        func_name = '_'.join([comp.lower() for comp in cls_comps])
+        return func_name
 
+    def _convert_func_to_class():
+        pass
+
+    def build_mtl_from_config(config):
+        encoder_name, encoder_params = configuration['encoder'].values()
+        # TODO to generalise this will have to change, for now we are just working with strings
+        encoder = getattr(bodys, encoder_name)(encoder_params)  # TODO maybe kwargs this for robustness
+        decoders = configuration['decoders']
+        decoder_dict = {
+            task: getattr(heads, decoder_info['name']) for task, decoder_info in decoders.items()
         }
-    }
+        # TODO honestly, I don't like this at all. I want default models
+        # TODO add this
+        model = HardMTLModel(encoder, decoder_dict)
+        return model(encoder, decoders), loss
 
-    main(config=config, epochs=1, batch_size=32)
+    run = 'OLD'
+    if run == 'NEW':
+        configuration = {
+            'save_params': 's',
+            'encoder': {
+                'name': 'resnet34',
+                'params': [64, 128, 256, 512],
+            },
+            'decoders': {
+                # TODO must call them class, seg or bb... no other support provided...
+                'class': {'name':'ClassificationHead',
+                          'params': {'n_output_features':2},
+                          'loss': 'bce'},
+                'seg': {'name':'SegmentationHead', 'params':{'filters':[64, 128, 256, 512]}, 'loss': 'dice'},
+                'bb': {'name':'BBHead', 'params':{'n_output_features': 4}, 'loss': 'l1'}
+            },
+            'weights': '',
+        }
+        # create model
+        # create loss
+        # create optimizer
+        # get loaders
+        run_instance = RunTorchModel()
+        run_instance.train()
+        run_instance.test()
+
+    elif run == 'OLD':
+        config = {
+            'model': [64, 128, 256, 512],
+            'mtl': {
+                "Model": 'mtl model', # TODO why do we need this?
+                "Tasks":{
+                    "Class":2,
+                    #"Segmen":1,
+                    #"BB":4
+                },
+                "Loss Lambda":{
+                    "Class":1,
+                    #"Segmen":1,
+                    #"BB":1
+                    }
+
+            }
+        }
+
+        main(config=config, epochs=1, batch_size=32)
 
 
 
@@ -222,13 +326,3 @@ def _create_config_from_str(model_name):
     decoder_name = model_components
     task_names = model_components[1:]
     pass
-def _build_model_from_config(config):
-    encoder_name, encoder_params = configuration['encoder'].values()
-    encoder = getattr(bodys, encoder_name)(encoder_params) # TODO maybe kwargs this for robustness
-    decoder_input_features = encoder_params[-1]
-    decoders = configuration['decoders']
-    decoders = {
-    }
-    # TODO add this
-    model = HardMTLModel()
-    return model(encoder, decoders)
