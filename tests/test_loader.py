@@ -13,7 +13,7 @@ def _load_data(index, dir):
 
 class TestLoader(unittest.TestCase):
 
-    def test_datasets_equal(self):
+    '''def test_datasets_equal(self):
         """Using the same loader, tests that both datasets are equal
         """
         # prepare first dataset
@@ -84,73 +84,29 @@ class TestLoader(unittest.TestCase):
         for (inputs1, targets1), (inputs2, targets2) in zip(batchloader, normalloader):
             assert torch.equal(inputs1, inputs2)
             for target1, target2 in zip(targets1.values(), targets2.values()):
-                assert torch.equal(target1, target2)
+                assert torch.equal(target1, target2)'''
 
     def test_random_batch_sampling_out_shuffle(self):
         """tests if random batch shuffling works as expected
         """
         dir_path = '../datasets/data_new/train/'
         dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
-        torch.manual_seed(0)
+        batch_loader = RandomBatchSampler(dataset, batch_size=32)
 
         batchloader = DataLoader(dataset, batch_size=None,
-                                 sampler=BatchSampler(RandomBatchSampler(dataset, batch_size=32, in_batch_shuffle=False), batch_size=32, drop_last=False))
-        ids = iter(torch.randperm(len(dataset)//32))
+                                 sampler=BatchSampler(batch_loader, batch_size=32, drop_last=False))
+
+        ids = torch.randperm(len(dataset)//32)
+        assert torch.equal(ids, batch_loader.batch_ids)
+        data = dataset.inputs['data']
         for i, (inputs, targets) in enumerate(batchloader):
             if i < len(ids):
                 id = ids[i]
             else:
-                id = 69
+                id = len(ids)
             index = list(range(id*32, (id+1)*32))
-            inputs_file = _load_data(index, dir_path+'images.h5')
+            inputs_file = torch.from_numpy(data[index]).float()
             assert torch.equal(inputs_file, inputs)
-
-    def test_random_batch_sampling_in_shuffle_true(self):
-        """tests if random batch shuffling works as expected with internal shuffles as well
-        """
-        dir_path = '../datasets/data_new/train/'
-        dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
-        torch.manual_seed(0)
-
-        batchloader = DataLoader(dataset, batch_size=None,
-                                 sampler=BatchSampler(
-                                     RandomBatchSampler(dataset, batch_size=32, in_batch_shuffle=True), batch_size=32,
-                                     drop_last=False))
-        ids = iter(torch.randperm(len(dataset) // 32))
-        for i, (inputs, targets) in enumerate(batchloader):
-            if i < len(ids):
-                id = ids[i]
-            else:
-                id = 69
-            index = list(range(id * 32, (id + 1) * 32))
-            inputs_file = _load_data(index, dir_path + 'images.h5')[torch.randperm(len(index))]
-            assert torch.equal(inputs_file, inputs)
-
-
-    def test_iterable_data_loader(self):
-        split = 'train'
-        data_old = OxfordPetDataset(config={'Tasks': {
-            'Class': 0, 'Segmen': 0, 'BB': 0
-        }}, split=split, mini_batch_size=0)
-        old_loader = DataLoader(loader, batch_size=32, shuffle=True)
-        #for (inputs, targets), batch in zip(a, old_loader):
-        #    assert torch.equal(inputs, batch['image'])
-        s = time.time()
-        for (inputs, targets) in a:
-            pass
-            #print(time.time() - s)
-
-        """s = time.time()
-        for data in old_loader:
-            print(time.time() - s)
-            break"""
-        """for i, (inputs, targets) in enumerate(a):
-            if i == 0:
-                print(inputs)
-                raise Exception()
-                assert _load_data(0, dir_path+'images.h5')[:32] == inputs
-            if i == 69:
-                assert _load_data(69, dir_path+'images.h5')[:-32] == inputs"""
 
 
 if __name__ == '__main__':
