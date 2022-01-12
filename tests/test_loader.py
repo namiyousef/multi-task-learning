@@ -33,6 +33,11 @@ class TestLoader(unittest.TestCase):
         for (inputs1, targets1), batch_dict in zip(dloader2, dloader1):
             assert torch.equal(inputs1, batch_dict['image'])
 
+    def test_dataloader_transform(self):
+        # empty unless transform added
+        pass
+
+
     def test_new_dataset_speed(self):
         """tests that new dataset is faster
         """
@@ -70,6 +75,8 @@ class TestLoader(unittest.TestCase):
         assert dloader2_time > dloader1_time
 
     def test_batch_sampling(self):
+        """tests if batch sampling with no shuffle gives the same results as normal dataloading
+        """
         dir_path = '../datasets/data_new/train/'
         dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
         batchloader = DataLoader(dataset, batch_size=None, sampler=BatchSampler(SequentialSampler(dataset), batch_size=32, drop_last=False))
@@ -80,6 +87,8 @@ class TestLoader(unittest.TestCase):
                 assert torch.equal(target1, target2)
 
     def test_random_batch_sampling_out_shuffle(self):
+        """tests if random batch shuffling works as expected
+        """
         dir_path = '../datasets/data_new/train/'
         dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
         torch.manual_seed(0)
@@ -97,6 +106,8 @@ class TestLoader(unittest.TestCase):
             assert torch.equal(inputs_file, inputs)
 
     def test_random_batch_sampling_in_shuffle_true(self):
+        """tests if random batch shuffling works as expected with internal shuffles as well
+        """
         dir_path = '../datasets/data_new/train/'
         dataset = OxpetDataset(dir_path, ['class', 'seg', 'bb'])
         torch.manual_seed(0)
@@ -144,9 +155,3 @@ class TestLoader(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-    """path = '../datasets/data_new/train/images.h5'
-    a = _load_data(0, path)
-    print(a)
-    a = _load_h5_file(path)
-    print(a)"""
