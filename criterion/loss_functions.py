@@ -66,4 +66,5 @@ class L1Loss(nn.Module):
 
 
 
-
+# TODO DiceLoss for BB, class, inputs configs, def forward(outputs, targets)
+# outputs -> tensors, targets -> tensors
