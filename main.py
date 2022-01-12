@@ -120,6 +120,9 @@ class RunTorchModel:
         self.model.train()
 
         for epoch in range(epochs):
+            start_epoch_message = f'EPOCH {epoch+1} STARTED'
+            print(start_epoch_message)
+            print(f'{"-" * len(start_epoch_message)}')
             start_epoch = time.time()
             # TODO add model saving here
             start_load = time.time()
@@ -171,17 +174,19 @@ class RunTorchModel:
                 print(print_message)
                 print(f'{"-"*len(print_message)}')
 
-
-
-
     def test(self, testloader, verbose=0, track_history=False):
+        with torch.no_grad():
+            pass
         pass
 
     def save_model(self):
         pass
 
-    def history(self):
-        pass
+    def get_history(self):
+        for name, history in self.loss_history:
+            pass
+        metrics = {}
+        return self.loss_history, self.metrics
 
     def _move(self, data):
         if torch.is_tensor(data):
@@ -281,7 +286,7 @@ if __name__ == '__main__':
         # model configuration
         model = resnet34_class(False)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-04)
-
+        # TODO in order to make the frequency more robust, e.g. if you wanted to add 'epoch' or 'batch' then you would have to use the update history function as an internal counter for epochs...!
         loss = RandomCombinedLoss(loss_dict={'class': torch.nn.CrossEntropyLoss()}, prior=partial(torch.rand, size=(1,)), frequency=5)
         # data
         root_path = 'datasets/data_new/{}'
@@ -294,7 +299,6 @@ if __name__ == '__main__':
 
         run_instance = RunTorchModel(model=model, optimizer=optimizer, loss=loss)
         run_instance.train(train_loader, epochs=2, verbose=1)
-
 
         configuration = {
             'save_params': 's',
