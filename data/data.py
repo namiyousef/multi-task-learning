@@ -60,12 +60,10 @@ class OxpetDataset(Dataset):
         self.targets = {
             task: self._load_h5_file_with_data(self.task_to_file[task]) for task in tasks if task in self.task_to_file
         }
-
         self.transform = transform
-
+        # TODO add default transforms, make sure target transforms only add to it, e.g. using transform compose?
 
     def __getitem__(self, index):
-        print(index[0], index[-1])
         inputs = self.inputs['data'][index]
         if self.transform:
             inputs = self.transform(inputs) # TODO need to test transform
@@ -75,6 +73,13 @@ class OxpetDataset(Dataset):
         targets = {
             task: torch.from_numpy(self.targets[task]['data'][index]).float() for task in self.targets
         }
+
+        # manual TensorFlow to PyTorch shape conversion for dense tensors # TODO parametrize
+        inputs = inputs.permute([0, 3, 2, 1]) # TODO need to think about generalising this with losses. Don't like this right now
+        if 'seg' in targets:
+            targets['seg'] = targets['seg'].permute([0,3, 2, 1])
+        if 'class' in targets:
+            targets['class'] = torch.reshape(targets["class"],(-1,)).type(torch.LongTensor)
         return (inputs, targets)
 
     def __len__(self):
@@ -93,7 +98,7 @@ class OxfordPetDataset(Dataset):
 
     def __init__(self,config,split, mini_batch_size, transform=None):
         # TODO minibatchsize not used?
-        root = "../datasets/data_new/"
+        root = "datasets/data_new/"
         root = root + split
         self.split = split
         img_path = r'images.h5'
