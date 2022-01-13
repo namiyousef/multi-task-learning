@@ -19,6 +19,7 @@ class Accuracy(torch.nn.Module):
         super(Accuracy, self).__init__()
 
     def forward(self, outputs, targets):
+        outputs = torch.argmax(outputs, dim=1)
         # remember, the edge case here is that this would not work if you have a 2D matrix!
         return torch.sum(outputs == targets) / len(targets)
 
