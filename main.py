@@ -136,18 +136,23 @@ class RunTorchModel:
     :type metrics: list
     """
     def __init__(self, model, optimizer, loss, metrics=None):
-
         self.model = model
         self.optimizer = optimizer
 
         self.device = _get_device()
 
         self.loss = loss
+        self.is_mtl = hasattr(self.loss, 'is_combined')
 
         self.history = {'loss': {'train': self._create_init_loss_history()}}
 
         if metrics:
             self.metrics = metrics
+
+        # checks
+        if self.is_mtl:
+            self._assert_dicts_compatible(model.decoders.keys(), loss.loss_dict.keys())
+            self._assert_metrics_compatible() # TODO checks that the metrics are compatible and that no weird dictionaries are added
 
 
     def train(self, trainloader, epochs=1, valloader=None, verbose=0, track_history=False):
@@ -238,6 +243,8 @@ class RunTorchModel:
 
         with torch.no_grad():
             for i, (inputs, targets) in enumerate(testloader):
+                inputs = self._move(inputs)
+                targets = self._move(targets)
                 outputs = self.model(inputs)
                 loss = self.loss(outputs, targets)
                 epoch_test_history = self._update_loss_epoch_history(epoch_test_history, loss)  # update losses of epoch
