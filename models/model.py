@@ -36,6 +36,7 @@ class HardMTLModel(nn.Module):
     def forward(self, x):
         outputs = self.encoder(x) # TODO the encoder MAY not accept skips... need to make this robust
         # TODO need to add good documentation explaining how to use this
+        print(self.decoders.items())
         return {
             task: decoder(*outputs) for task, decoder in self.decoders.items()
         }

@@ -40,22 +40,9 @@ else:
     print('CUDA device not detected. Running on CPU instead.')
 
 
-class SimpleCombinedLoss(torch.nn.Module):
-    def __init__(self, loss_dict, weights=None):
-        self.loss_dict = loss_dict
-        if weights is None:
-            self.weights = {task: 1 for task in self.loss_dict}
-        else:
-            self.weights = weights
 
-    def forward(self, outputs, targets):
-        losses = {
-            task: weight * loss(outputs, targets) for (task, loss), weight in zip(self.loss_dict.items(), self.weights)
-        }
 
-        return sum(losses.values())
-
-class CombinedLoss(torch.nn.Module):
+class CombinedLoss(torch.nn.Module): # TODO can you modify the combined loss to make it follow the strat of simple combined loss?
     def __init__(self):
         super(CombinedLoss, self).__init__()
         self.is_combined_loss = True
@@ -68,10 +55,28 @@ class CombinedLoss(torch.nn.Module):
                 loss_dict[task] += loss_val
         return loss_dict
 
+# TODO newer iterations need to make the subclassing better to avoid name clashes!
+class SimpleCombinedLoss(CombinedLoss):
+    def __init__(self, loss_dict, weights=None):
+        super(SimpleCombinedLoss, self).__init__()  # you must inherit superclass
+        self.loss_dict = loss_dict  # you must define this as such
 
-# TODO currently no support for scaling weights
 
+        # feel free to add any configurations for the loss of your choice
+        # in this case, we've done for a simple weighted loss.
+        if weights is None:
+            self.weights = torch.ones(size=(len(self.loss_dict), ))
+        else:
+            self.weights = weights
+
+    def forward(self, outputs, targets):
+        # while the contents of the dictionary may vary, you MUST set self.losses to a dictionary that contains your losses
+        self.loss_values = {
+            task: weight * loss(outputs[task], targets[task]) for (task, loss), weight in zip(self.loss_dict.items(), self.weights)
+        }
+        return sum(self.loss_values.values())
 class RandomCombinedLoss(CombinedLoss):
+    # TODO currently no extra support for scaling weights manually
     """Adds random weights to the loss before summation
 
     :param loss_dict: dictionary with keys and values, {task_name: callable_loss}
