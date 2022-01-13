@@ -50,44 +50,61 @@ def resnet34_class(pretrained=False):
     }
     return HardMTLModel(encoder, decoders)
 
-def resnet34_seg():
-    pass
+def resnet34_seg_class(pretrained=False):
+    encoder = resnet34(pretrained)
+    filters = [64, 128, 256, 512]
+    decoder_out_channels = filters[-1]
+    decoders = {
+        'class': ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
+        'seg': SegmentationHead(filters=filters)
+    }
+    return HardMTLModel(encoder, decoders)
 
-def resnet34_seg_class():
-    pass
-
-def resnet34_seg_class_bb():
-
-    pass
-
-def resnet34_seg_bb():
-    pass
-
-def resnet34_seg_class():
-    encoder = resnet34(False)
+def resnet34_seg_class_bb(pretrained=False):
+    encoder = resnet34(pretrained)
     filters = [64, 128, 256, 512]
     decoder_out_channels = filters[-1]
     decoders = {
         'class': ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
         'seg': SegmentationHead(filters=filters),
+        'bb':BBHead(in_channels=decoder_out_channels, num_classes=4)
     }
     return HardMTLModel(encoder, decoders)
 
-def resnet34_seg_bb():
-    encoder = resnet34(False)
-    filters = [64, 128, 256, 512]
-    decoder_out_channels = filters[-1]
-    decoders = {
-        'class':ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
-        'bb': BBHead(in_channels=decoder_out_channels, num_classes=4)
-    }
-    return HardMTLModel(encoder, decoders)
-
-def resnet34_seg():
-    encoder = resnet34(False)
+def resnet34_seg_bb(pretrained=False):
+    encoder = resnet34(pretrained)
     filters = [64, 128, 256, 512]
     decoder_out_channels = filters[-1]
     decoders = {
         'seg': SegmentationHead(filters=filters),
+        'bb':BBHead(in_channels=decoder_out_channels, num_classes=4)
+    }
+    return HardMTLModel(encoder, decoders)
+
+def resnet34_seg(pretrained=False):
+    encoder = resnet34(pretrained)
+    filters = [64, 128, 256, 512]
+    decoder_out_channels = filters[-1]
+    decoders = {
+        'seg': SegmentationHead(filters=filters),
+    }
+    return HardMTLModel(encoder, decoders)
+
+def resnet34_bb(pretrained=False):
+    encoder = resnet34(pretrained)
+    filters = [64, 128, 256, 512]
+    decoder_out_channels = filters[-1]
+    decoders = {
+        'bb': BBHead(in_channels=decoder_out_channels, num_classes=4)
+    }
+    return HardMTLModel(encoder, decoders)
+
+def resnet34_class_bb(pretrained=False):
+    encoder = resnet34(pretrained)
+    filters = [64, 128, 256, 512]
+    decoder_out_channels = filters[-1]
+    decoders = {
+        'class': ClassificationHead(in_channels=decoder_out_channels, num_classes=2),
+        'bb':BBHead(in_channels=decoder_out_channels, num_classes=4)
     }
     return HardMTLModel(encoder, decoders)
