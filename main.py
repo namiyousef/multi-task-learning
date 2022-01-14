@@ -1,5 +1,5 @@
 import torch
-from utils import _prepare_data, _update_loss_dict, _update_performance_dict, _print_epoch_results, _get_device
+from utils import _prepare_data, _update_loss_dict, _update_performance_dict, _print_epoch_results, get_device
 from models.model import Model
 from models import model
 from criterion.criterion import Criterion
@@ -7,27 +7,24 @@ from criterion.metric_functions import accuracy
 from criterion import metric_functions
 from data.data import get_dataloader, get_dataset, RandomBatchSampler
 from train import model_train
-import time
 from data.data import OxpetDataset
 from torch.utils.data import DataLoader, BatchSampler
-import math
+from run import RunTorchModel
 
 configuration = {
-        'save_params':'s',
-        'encoder': {
-            'name':'resnet34',
-            'params':[64, 128, 256, 512],
-        },
-        'decoders': {
-            # TODO must call them class, seg or bb... no other support provided...
-            'class':{'n_output_features':2, 'loss':'bce'},
-            'seg':{'n_output_features': 1, 'loss':'dice'},
-            'bb':{'n_output_features':'', 'loss':'l1'}
-        },
-        'weights': '',
-    }
-
-
+    'save_params': 's',
+    'encoder': {
+        'name': 'resnet34',
+        'params': [64, 128, 256, 512],
+    },
+    'decoders': {
+        # TODO must call them class, seg or bb... no other support provided...
+        'class': {'n_output_features': 2, 'loss': 'bce'},
+        'seg': {'n_output_features': 1, 'loss': 'dice'},
+        'bb': {'n_output_features': '', 'loss': 'l1'}
+    },
+    'weights': '',
+}
 
 # TODO don't like this, would like this to be in one place only. Currently also done in train.py!
 CUDA_AVAILABLE = torch.cuda.is_available()
@@ -40,13 +37,13 @@ else:
     print('CUDA device not detected. Running on CPU instead.')
 
 
-
-
-class CombinedLoss(torch.nn.Module): # TODO can you modify the combined loss to make it follow the strat of simple combined loss?
+class CombinedLoss(
+    torch.nn.Module):  # TODO can you modify the combined loss to make it follow the strat of simple combined loss?
     def __init__(self):
         super(CombinedLoss, self).__init__()
         self.is_combined_loss = True
         self.loss_values = None
+
     def _update_history(self, loss_dict):
         for task, loss in self.loss_values.items():
             if task != self.__class__.__name__:
@@ -55,26 +52,29 @@ class CombinedLoss(torch.nn.Module): # TODO can you modify the combined loss to 
                 loss_dict[task] += loss_val
         return loss_dict
 
+
 # TODO newer iterations need to make the subclassing better to avoid name clashes!
 class SimpleCombinedLoss(CombinedLoss):
     def __init__(self, loss_dict, weights=None):
         super(SimpleCombinedLoss, self).__init__()  # you must inherit superclass
         self.loss_dict = loss_dict  # you must define this as such
 
-
         # feel free to add any configurations for the loss of your choice
         # in this case, we've done for a simple weighted loss.
         if weights is None:
-            self.weights = torch.ones(size=(len(self.loss_dict), ))
+            self.weights = torch.ones(size=(len(self.loss_dict),))
         else:
             self.weights = weights
 
     def forward(self, outputs, targets):
         # while the contents of the dictionary may vary, you MUST set self.losses to a dictionary that contains your losses
         self.loss_values = {
-            task: weight * loss(outputs[task], targets[task]) for (task, loss), weight in zip(self.loss_dict.items(), self.weights)
+            task: weight * loss(outputs[task], targets[task]) for (task, loss), weight in
+            zip(self.loss_dict.items(), self.weights)
         }
         return sum(self.loss_values.values())
+
+
 class RandomCombinedLoss(CombinedLoss):
     # TODO currently no extra support for scaling weights manually
     """Adds random weights to the loss before summation
@@ -86,6 +86,7 @@ class RandomCombinedLoss(CombinedLoss):
     :param frequency: number of mini-batches before update. This should be math.ceil(data_length / batch_size) for epoch
     :type frequency: int
     """
+
     def __init__(self, loss_dict, prior, frequency):
         super(RandomCombinedLoss, self).__init__()
         self.loss_dict = loss_dict
@@ -123,230 +124,9 @@ class RandomCombinedLoss(CombinedLoss):
         probas = torch.randint(0, 2, size=(len(self.loss_dict),))
         return probas / torch.sum(probas, dtype=torch.float)
 
-class RunTorchModel:
-    """Class for easy running of PyTorch models, similar to that of Keras API
-
-    :param model: initialised PyTorch model (subclasses from torch.nn.Module)
-    :type model: class
-    :param optimizer: initialised optimizer from PyTorch
-    :type optimizer: <class 'torch.optim.{optim_name}.{optim_cls_name}'>
-    :param loss: initialised PyTorch loss
-    :type loss: class
-    :param metrics: PyTorch metrics (either objects or string names)
-    :type metrics: list
-    """
-    def __init__(self, model, optimizer, loss, metrics=None):
-        self.model = model
-        self.optimizer = optimizer
-
-        self.device = _get_device()
-
-        self.loss = loss
-        self.is_mtl = hasattr(self.loss, 'is_combined')
-
-        self.history = {'loss': {'train': self._create_init_loss_history()}}
-
-        if metrics:
-            self.metrics = metrics
-
-        # checks
-        if self.is_mtl:
-            self._assert_dicts_compatible(model.decoders.keys(), loss.loss_dict.keys())
-            self._assert_metrics_compatible() # TODO checks that the metrics are compatible and that no weird dictionaries are added
-
-
-    def train(self, trainloader, epochs=1, valloader=None, verbose=0, track_history=False):
-
-        measure_metrics = track_history and hasattr(self, 'metrics')
-
-        if measure_metrics:
-            self.history['metric'] = {'train': self._create_init_metric_history()}
-        if valloader:
-            self.history['loss']['val'] = self._create_init_loss_history()
-            if measure_metrics:
-                self.history['metric']['val'] = self._create_init_metric_history()
-
-        history_keys = self.history.keys()
-        create_init_histories = {key: getattr(self, f'_create_init_{key}_history') for key in history_keys}
-        update_epoch_histories = {key: getattr(self, f'_update_{key}_epoch_history') for key in history_keys}
-
-        print('Training model...')
-        self.model.to(self.device)
-
-        for epoch in range(epochs):
-            self.model.train()
-            start_epoch_message = f'EPOCH {epoch+1} STARTED'
-            print(start_epoch_message)
-            print(f'{"-" * len(start_epoch_message)}')
-            start_epoch = time.time()
-            # TODO add model saving here
-            start_load = time.time()
-
-            epoch_train_history = {key: create_init_history(domain='epoch') for key, create_init_history in create_init_histories.items()}
-
-            for i, (inputs, targets) in enumerate(trainloader):
-                start_train = time.time()
-                inputs = self._move(inputs)
-                targets = self._move(targets)
-
-                self.optimizer.zero_grad()
-                outputs = self.model(inputs)
-                loss = self.loss(outputs, targets)
-
-                for key in update_epoch_histories:
-                    tmp_dict = epoch_train_history
-                    if key == 'loss':
-                        # TODO don't like implicit defs
-                        update_func = update_epoch_histories[key]
-                        tmp_dict = update_func(tmp_dict, loss)
-                        epoch_train_history = tmp_dict
-
-                    else:
-                        update_func = update_epoch_histories[key]
-                        tmp_dict = tmp_dict[key] # TODO need to make this consistent
-                        tmp_dict = update_func(tmp_dict, outputs, targets)
-                        epoch_train_history[key] = tmp_dict
-
-                loss.backward()
-                self.optimizer.step()
-
-                end_train = time.time()
-
-                if verbose == 2:
-                    print(
-                        f'Batch {i+1} complete. Time taken: load({start_train - start_load:.3g}), '
-                        f'train({end_train - start_train:.3g}), total({end_train - start_load:.3g}). '
-                    )
-                start_load = time.time()
-            epoch_train_history = {key: {loss_name: loss_val/(i+1) for loss_name, loss_val in losses.items()} for key, losses in epoch_train_history.items()}
-            self._update_history(epoch_train_history, 'train')
-            if valloader:
-                epoch_val_history = self.test(valloader, measure_val_metrics=measure_metrics)
-                self._update_history(epoch_val_history, 'val')
-
-            end_epoch = time.time()
-
-            print_message = f'Epoch {epoch+1}/{epochs} complete. Time taken: {end_epoch - start_epoch:.3g}. ' \
-                            f'Loss: {self._get_loss_print_msg()}'
-
-            if verbose:
-                print(f'{"-"*len(print_message)}')
-                print(print_message)
-                print(f'{"-"*len(print_message)}')
-
-    def test(self, testloader, measure_val_metrics=True):
-        self.model.eval()
-        measure_metrics = measure_val_metrics if not measure_val_metrics else hasattr(self, 'metrics')
-        epoch_test_history = {'loss': self._create_init_loss_history('epoch')}
-        if measure_metrics:
-            epoch_test_history['metric'] = self._create_init_metric_history('epoch')
-
-        with torch.no_grad():
-            for i, (inputs, targets) in enumerate(testloader):
-                inputs = self._move(inputs)
-                targets = self._move(targets)
-                outputs = self.model(inputs)
-                loss = self.loss(outputs, targets)
-                epoch_test_history = self._update_loss_epoch_history(epoch_test_history, loss)  # update losses of epoch
-                if measure_metrics:
-                    epoch_test_history['metric'] = self._update_metric_epoch_history(epoch_test_history['metric'], outputs, targets)  # update metrics of epoch
-        epoch_test_history = {key: loss_val / (i + 1) for key, loss_val in epoch_test_history.items()}
-        return epoch_test_history
-
-    def save_model(self):
-        pass
-
-    def get_history(self):
-        return self.history
-
-    def _get_init_history_value(self, domain):
-        if domain == 'history':
-            return []
-        if domain == 'epoch':
-            return 0
-
-    def _create_init_loss_history(self, domain='history'):
-        name = self._get_cls_name(self.loss)
-        value = self._get_init_history_value(domain)
-        loss_history = {name: value}
-        if hasattr(self.loss, 'is_combined_loss'):
-            for key in self.loss.loss_dict:
-                loss_history[key] = value
-
-        return loss_history
-
-    def _create_init_metric_history(self, domain='history'):
-        value = self._get_init_history_value(domain)
-        if hasattr(self.loss, 'is_combined_loss'):
-
-            return {self._get_cls_name(metric): value for  key, task_metrics in self.metrics.items()  for metric in task_metrics}
-        else:
-            return {self._get_cls_name(metric): value for metric in self.metrics}
-
-    def _update_history(self, epoch_history_dict, split):
-        for key in self.history:
-            if key == 'loss':
-                for name, val in epoch_history_dict[key].items():
-                    tmp_list = self.history[key][split][name].copy()
-                    tmp_list.append(val)
-                    self.history[key][split][name] = tmp_list
-            else:
-                if hasattr(self.loss, 'is_combined_loss'):
-                    for task in self.metrics:
-                        task_metrics = self.metrics[task]
-                        for metric in task_metrics:
-                            name = self._get_cls_name(metric)
-                            self.history[key][split][name].append(epoch_history_dict[key][name])
-                else:
-                    for metric in self.metrics:
-                        name = self._get_cls_name(metric)
-                        self.history[key][split][name].append(epoch_history_dict[key][name])
-
-    def _update_loss_epoch_history(self, history_dict, loss):
-        name = self._get_cls_name(self.loss)
-        history_dict['loss'][name] += loss.item()
-        if hasattr(self.loss, 'is_combined_loss'):
-            history_dict['loss'] = self.loss._update_history(history_dict['loss'])
-        return history_dict
-
-    def _update_metric_epoch_history(self, history_dict, outputs, targets):
-        if hasattr(self.loss, 'is_combined_loss'):
-            for task in self.metrics:
-                task_metrics = self.metrics[task]
-                for metric in task_metrics:
-                    name = self._get_cls_name(metric)
-                    history_dict[name] += metric(outputs[task], targets[task]).item()
-        else:
-            for metric in self.metrics:
-                name = self._get_cls_name(metric)
-                history_dict[name] += metric(outputs, targets).item()
-        return history_dict
-
-    def _move(self, data):
-        if torch.is_tensor(data):
-            return data.to(self.device)
-        elif isinstance(data, dict):
-            return {task: tensor.to(self.device) for task, tensor in data.items()}
-        elif isinstance(data, list):
-            raise NotImplementedError('Currenlty no support for tensors stored in lists.')
-        else:
-            raise TypeError('Invalid data type.')
-
-    def _get_cls_name(self, cls):
-        return cls.__class__.__name__
-
-    def _get_loss_print_msg(self):
-        loss_dict = self.history['loss']
-        return ', '.join(
-            [
-                f'{split}[{", ".join([f"{loss_name}({sum(loss_val)/len(loss_val):.3g})" for loss_name, loss_val in loss_dict[split].items()])}]' for split in loss_dict.keys()
-            ]
-        )
-
-
 
 def main(config, epochs=1, batch_size=32,
-         metrics=None, losses=None, validation_data=True): # TODO later change to false!
+         metrics=None, losses=None, validation_data=True):  # TODO later change to false!
     """
     :param config:
     # either dict or string. If string will use configuration that exists. If dict will build the model
@@ -363,7 +143,7 @@ def main(config, epochs=1, batch_size=32,
             pass
     else:
         pass
-        #net = _build_model(config) # TODO needs changing.
+        # net = _build_model(config) # TODO needs changing.
 
     model_config = config['model']
     task_config = config['mtl']
@@ -384,18 +164,18 @@ def main(config, epochs=1, batch_size=32,
         val_dataloader = get_dataloader(val_dataset, batch_size)
 
     # TODO can even add losses here! Just need to think of a smart way to do it with an if statement
-    #callable_metrics = {
+    # callable_metrics = {
     #    task : [getattr(metric_functions, metric) for metric in metric_names] for task, metric_names in metrics.items()
-    #}
+    # }
     # train loop
 
     print("Train loop started...")
 
     for i, epoch in enumerate(range(epochs)):
-        print(f"Epoch {i+1}") # TODO beautify this with verbose later
+        print(f"Epoch {i + 1}")  # TODO beautify this with verbose later
         model_eval = model_train(
             config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader, #metrics=callable_metrics
+            val_dataloader=val_dataloader,  # metrics=callable_metrics
         )
 
     print("Test loop started...")
@@ -414,10 +194,11 @@ def main(config, epochs=1, batch_size=32,
                 test_accuracy += accuracy(task_targets['Class'].to(device), test_output['Class'])
             loss = criterion(test_output, task_targets)
 
-            perfomance_dict = _update_performance_dict(perfomance_dict, loss, test_output,mini_batch,task_config)
+            perfomance_dict = _update_performance_dict(perfomance_dict, loss, test_output, mini_batch, task_config)
 
     _print_epoch_results(perfomance_dict, config['mtl'])
-    print(f'Test Accuracy: {test_accuracy/(i+1)}')
+    print(f'Test Accuracy: {test_accuracy / (i + 1)}')
+
 
 if __name__ == '__main__':
 
@@ -436,7 +217,7 @@ if __name__ == '__main__':
         }, prior='normal', frequency=70)
         # data
         root_path = 'datasets/data_new/{}'
-        train_data = OxpetDataset(root_path.format('train'), tasks=['class', 'seg'])
+        train_data = OxpetDataset(root_path.format('train'), tasks=['class', 'seg'], max_size=1)
         val_data = OxpetDataset(root_path.format('val'), tasks=['class', 'seg'])
         train_bs = 32
         train_loader = DataLoader(
@@ -444,13 +225,12 @@ if __name__ == '__main__':
             sampler=BatchSampler(RandomBatchSampler(train_data, train_bs), batch_size=train_bs, drop_last=False)
         )
 
-
-        run_instance = RunTorchModel(model=model, optimizer=optimizer, loss=loss, metrics={'class':[Accuracy()]})
+        run_instance = RunTorchModel(model=model, optimizer=optimizer, loss=loss, metrics={'class': [Accuracy()]})
         run_instance.train(train_loader, epochs=2, verbose=2, track_history=True)
         print(run_instance.test(train_loader))
         print(run_instance.get_history())
 
-        configuration = {
+        """configuration = {
             'save_params': 's',
             'encoder': {
                 'name': 'resnet34',
@@ -471,29 +251,28 @@ if __name__ == '__main__':
         # create optimizer
         # get loaders
         run_instance = RunTorchModel()
-        run_instance.train()
+        run_instance.train()"""
 
     elif run == 'OLD':
         config = {
             'model': [64, 128, 256, 512],
             'mtl': {
-                "Model": 'mtl model', # TODO why do we need this?
-                "Tasks":{
-                    "Class":2,
-                    #"Segmen":1,
-                    #"BB":4
+                "Model": 'mtl model',  # TODO why do we need this?
+                "Tasks": {
+                    "Class": 2,
+                    # "Segmen":1,
+                    # "BB":4
                 },
-                "Loss Lambda":{
-                    "Class":1,
-                    #"Segmen":1,
-                    #"BB":1
-                    }
+                "Loss Lambda": {
+                    "Class": 1,
+                    # "Segmen":1,
+                    # "BB":1
+                }
 
             }
         }
 
         main(config=config, epochs=1, batch_size=32)
-
 
 
 # TODO for later, DO NOT USE
@@ -507,16 +286,16 @@ def _get_model(model_name):
     model_components = model_name.split('_')
     decoder = model_components[0]
     tasks = model_components[1:]
-    filters = 0 # TODO get decoder default fitlers
+    filters = 0  # TODO get decoder default fitlers
     # get default model weights
     pass
+
+
 def _create_config_from_str(model_name):
     model_components = model_name.split('_')
     decoder_name = model_components
     task_names = model_components[1:]
     pass
-
-
 
     import re
     def _convert_class_to_func(cls_name):
