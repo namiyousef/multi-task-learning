@@ -1,9 +1,8 @@
 import torch
-# TODO make this an import from torch vision?
 from models.resnet import resnet34
 from models.heads import ClassificationHead, SegmentationHead, BBHead
-from models.bodys import ResUBody, ResUBodyNEW
 import torch.nn as nn
+
 
 
 class ConvLayer(nn.Module):
