@@ -51,7 +51,7 @@ class OxpetDataset(Dataset):
     }
     # TODO think about adding custom tasks with the same data
     # TODO think about replacing tasks, about arbitrary combinations also?
-    def __init__(self, dir_path, tasks, transform=None, target_transforms=None):
+    def __init__(self, dir_path, tasks, transform=None, target_transforms=None, shuffle=False, max_size=None):
 
         super(OxpetDataset, self).__init__()
 
@@ -61,6 +61,8 @@ class OxpetDataset(Dataset):
             task: self._load_h5_file_with_data(self.task_to_file[task]) for task in tasks if task in self.task_to_file
         }
         self.transform = transform
+        self.shuffle = shuffle # TODO implement shuffle after data loaded
+        self.max_size = max_size
         # TODO add default transforms, make sure target transforms only add to it, e.g. using transform compose?
 
     def __getitem__(self, index):
@@ -83,7 +85,7 @@ class OxpetDataset(Dataset):
         return (inputs, targets)
 
     def __len__(self):
-        return self.inputs['data'].shape[0]
+        return self.max_size if self.max_size else self.inputs['data'].shape[0]
 
     def _load_h5_file_with_data(self, file_name):
         path = os.path.join(self.dir_path, file_name)
@@ -94,6 +96,8 @@ class OxpetDataset(Dataset):
 
     def clear_files(self):
         pass
+
+
 class OxfordPetDataset(Dataset):
 
     def __init__(self,config,split, mini_batch_size, transform=None):
