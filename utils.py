@@ -60,7 +60,7 @@ def _update_performance_dict(dict,loss,output,batch,config):
     return dict
 
 
-def _get_device():
+def get_device():
     CUDA_AVAILABLE = torch.cuda.is_available()
 
     if CUDA_AVAILABLE:
