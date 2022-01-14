@@ -8,3 +8,15 @@ Tasks outstanding:
 - create default configs
 - run tests, gather data
 """
+# public imports
+import unittest
+
+# private imports
+from run import RunTorchModel
+
+class ModelTrainingClass(unittest.TestCase):
+
+    def test_loss_dict_creation(self):
+        
+    def test_metric_dict_creation(self):
+        pass
