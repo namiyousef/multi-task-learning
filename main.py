@@ -34,25 +34,25 @@ def main(data_dir, encoder, decoders, losses, batch_size):
 
 
 if __name__ == '__main__':
-    from models.model import resnet34_class, resnet34_seg_class
-    from criterion.loss_functions import DiceLoss
+    from models.model import resnet34_class, resnet34_seg_class, resnet34_seg_class_bb
+    from criterion.loss_functions import DiceLoss, DynamicCombinedLoss, SimpleCombinedLoss
     from criterion.metric_functions import MultiAccuracy, PixelAccuracy, Recall, Precision, F1Score, Jaccard
-
+    from torch.nn import L1Loss
     # model configuration
-    model = resnet34_seg_class(False)
+    model = resnet34_seg_class_bb(False)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-04)
-    loss = RandomCombinedLoss(loss_dict={
-        'class': torch.nn.CrossEntropyLoss(), 'seg': DiceLoss()
-    }, prior='normal', frequency=70)
+    train_bs = 8
+
+    loss_dict = {
+        'class': torch.nn.CrossEntropyLoss(), 'seg': DiceLoss(), 'bb': L1Loss()
+    }
+    loss = DynamicCombinedLoss(loss_dict, frequency=1, temperature=1, sf={'bb':train_bs/10000})
+    loss = SimpleCombinedLoss(loss_dict, sf={'bb':train_bs/10000})
     # data
     root_path = 'datasets/data_new/{}'
-    train_data = OxpetDataset(root_path.format('train'), tasks=['class', 'seg'])
-    val_data = OxpetDataset(root_path.format('val'), tasks=['class', 'seg'])
-    train_bs = 8
-    train_loader = DataLoader(
-        train_data, batch_size=None,
-        sampler=BatchSampler(RandomBatchSampler(train_data, train_bs), batch_size=train_bs, drop_last=False)
-    )
+    train_data = OxpetDataset(root_path.format('train'), tasks=['class', 'seg', 'bb'])
+    val_data = OxpetDataset(root_path.format('val'), tasks=['class', 'seg', 'bb'])
+    train_loader = fast_loader(train_data, train_bs)
 
     run_instance = RunTorchModel(model=model, optimizer=optimizer, loss=loss, metrics={
         'class': [MultiAccuracy()],

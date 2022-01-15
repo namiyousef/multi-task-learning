@@ -1,5 +1,5 @@
 from utils import _split_equation
-from criterion.loss_functions import RandomCombinedLoss, SimpleCombinedLoss, DynamicCombinedLoss
+from criterion.loss_functions import RandomCombinedLoss, SimpleCombinedLoss, DynamicCombinedLoss, NormalisedDynamicCombinedLoss
 from criterion import loss_functions
 from models import model
 import torch
@@ -43,6 +43,9 @@ def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_du
         if prior == 'dynamic':
             temperature = float(weights[-1])
             loss = DynamicCombinedLoss(losses, frequency=frequency, temperature=temperature)
+        elif prior == 'dynamic_novel':
+            temperature = float(weights[-1])
+            loss = NormalisedDynamicCombinedLoss(losses, frequency=frequency, temperature=temperature)
         else:
             loss = RandomCombinedLoss(losses, frequency=frequency, prior=prior, sf=scaling_factors, eval_test=apply_weights_during_test)
 
