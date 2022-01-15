@@ -101,6 +101,9 @@ class RandomCombinedLoss(CombinedLoss):
 
     def constrained_bernoulli(self):
         probas = torch.randint(0, 2, size=(len(self.loss_dict),))
+        while torch.all(probas == 0):
+            probas = torch.randint(0, 2, size=(len(self.loss_dict),))
+
         return probas / torch.sum(probas, dtype=torch.float)
 
 
