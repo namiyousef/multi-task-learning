@@ -164,7 +164,7 @@ class NormalisedDynamicCombinedLoss(CombinedLoss):
 
         weights = {
             task: math.exp(
-                (self.weights[task][-1].item() - self.weights[task][-2].item()) / \
+                (self.weights[task][-1].item() - self.weights[task][-2].item()) * \
                 (self.weight_totals[-1].item() - self.weight_totals[-2].item()) * \
                 (self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature))
             ) for task in self.loss_dict
