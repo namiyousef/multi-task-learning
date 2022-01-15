@@ -103,6 +103,8 @@ class RandomCombinedLoss(CombinedLoss):
         probas = torch.randint(0, 2, size=(len(self.loss_dict),))
         return probas / torch.sum(probas, dtype=torch.float)
 
+
+# TODO there are some type casting problems here.. make sure all the inputs are tensors for future
 class DynamicCombinedLoss(CombinedLoss):
     def __init__(self, loss_dict, temperature, frequency, **kwargs):
         super(DynamicCombinedLoss, self).__init__(loss_dict, **kwargs)
@@ -110,7 +112,7 @@ class DynamicCombinedLoss(CombinedLoss):
         self.temperature = temperature
         self.mini_batch_counter = 0
         self.epoch = 0
-        self.weights = {task: torch.ones(len(loss_dict), dtype=torch.float) for task in self.tasks}
+        self.weights = {task: torch.ones(len(loss_dict), dtype=torch.float) for task in self.loss_dict}
 
     def forward(self, outputs, targets):
         weights = {
