@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
+import math
 
+# TODO PixelDiceLoss and ContDiceLoss for the BB!
 # TODO try to improve this using setters and getters. For now this is OK, but makes the definition of custom losses complex
 class CombinedLoss(torch.nn.Module):
     """Superclass for defining all combined losses. Any custom combined loss must subclass from this. If the custom
@@ -56,7 +58,7 @@ class SimpleCombinedLoss(CombinedLoss):
 
     def forward(self, outputs, targets):
         losses = self.caclulate_loss(outputs, targets, self.weights)
-        return sum(losses)
+        return sum(losses.values())
 
 
 class RandomCombinedLoss(CombinedLoss):
@@ -115,33 +117,77 @@ class DynamicCombinedLoss(CombinedLoss):
         self.temperature = temperature
         self.mini_batch_counter = 0
         self.epoch = 0
-        self.weights = {task: torch.ones(len(loss_dict), dtype=torch.float) for task in self.loss_dict}
+        self.weights = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
 
     def forward(self, outputs, targets):
-        weights = {
-            task: torch.exp(
-                self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature)
-            ) for task in self.loss_dict
-        }
-        weights_sum = sum(weights.values())
-        weights = {task: weight / weights_sum for task, weight in weights.items()}
-
-        loss = self.caclulate_loss(outputs, targets, torch.ones(size=(len(self.loss_dict),)))
-
         k0 = list(outputs.keys())[0]
         if outputs[k0].requires_grad:
             self.mini_batch_counter += 1
 
+        weights = {
+            task: math.exp(
+                self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature)
+            ) for task in self.loss_dict
+        }
+        Z = sum(weights.values()) / len(self.loss_dict)
+        weights = {task: weight / Z for task, weight in weights.items()}
+
+        losses = self.caclulate_loss(outputs, targets, weights.values())
+        total_loss = sum(losses.values())
+
         if self.mini_batch_counter % self.frequency == 0:
-            self._update_weights(loss)
+            self.epoch = self.mini_batch_counter // self.frequency
+            self._update_weights(losses)
 
-        losses = self.caclulate_loss(outputs, targets, weights)
-        return sum(losses.values())
+        return total_loss
 
-    def _update_weights(self, loss):
+    def _update_weights(self, losses):
         if self.epoch > 1:
             for task in self.loss_dict:
-                self.weights[task][self.epoch % 2] = loss[task]
+                self.weights[task][self.epoch % 2] = losses[task]
+
+class NormalisedDynamicCombinedLoss(CombinedLoss):
+
+    def __init__(self, loss_dict, temperature, frequency, **kwargs):
+        super(NormalisedDynamicCombinedLoss, self).__init__(loss_dict, **kwargs)
+        self.frequency = frequency
+        self.temperature = temperature
+        self.mini_batch_counter = 0
+        self.epoch = 0
+        self.weights = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
+        self.weight_totals = torch.ones(2, dtype=torch.float)
+
+    def forward(self, outputs, targets):
+        k0 = list(outputs.keys())[0]
+        if outputs[k0].requires_grad:
+            self.mini_batch_counter += 1
+
+        weights = {
+            task: math.exp(
+                (self.weights[task][-1].item() - self.weights[task][-2].item()) / \
+                (self.weight_totals[-1].item() - self.weight_totals[-2].item()) * \
+                (self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature))
+            ) for task in self.loss_dict
+        }
+
+        Z = sum(weights.values()) / len(self.loss_dict)
+        weights = {task: weight / Z for task, weight in weights.items()}
+
+        losses = self.caclulate_loss(outputs, targets, weights.values())
+        total_loss = sum(losses.values())
+
+        if self.mini_batch_counter % self.frequency == 0:
+            self.epoch = self.mini_batch_counter // self.frequency
+            self._update_weights(losses, total_loss)
+
+        return total_loss
+
+    def _update_weights(self, losses, total_loss):
+        if self.epoch > 1:
+            for task in self.loss_dict:
+                self.weights[task][self.epoch % 2] = losses[task]
+                self.weights[task][self.epoch % 2] = total_loss
+
 
 class BCELoss(nn.Module):
     def __init__(self):
