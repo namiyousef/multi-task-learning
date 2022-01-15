@@ -70,3 +70,8 @@ def get_device():
         device = torch.device('cpu')
         print('CUDA device not detected. Running on CPU instead.')
     return device
+
+def _split_equation(string):
+    string = "".join(string.lower().split())
+    comps = string.split('+')
+    return comps
