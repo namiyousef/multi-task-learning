@@ -1,5 +1,4 @@
-#
-# Code referenced from  Torchvision
+# Code referenced from  Torchvision (TODO add link)
 
 import torch
 import torch.nn as nn
@@ -10,11 +9,9 @@ except:
     print('Importing load_state_dict_from_url from torch.hub instead...')
     from torch.hub import load_state_dict_from_url
 
-
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
            'wide_resnet50_2', 'wide_resnet101_2']
-
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -218,10 +215,6 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         skips.append(x)
         x = self.layer4(x)
-
-        #x = self.avgpool(x)
-        #x = torch.flatten(x, 1)
-        #x = self.fc(x)
 
         return x, skips
     
