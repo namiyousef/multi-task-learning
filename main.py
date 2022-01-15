@@ -1,11 +1,35 @@
 import torch
-from data.data import OxpetDataset, RandomBatchSampler
+from data.data import OxpetDataset, fast_loader
 from torch.utils.data import DataLoader, BatchSampler
 from run import RunTorchModel
 from criterion.loss_functions import RandomCombinedLoss
+import os
 
-def main():
-    pass
+from models.utils import get_prebuilt_model
+config = {
+    'data_dir': 'datasets/data_new/',
+    'encoder': 'resnet34',
+    'decoders': 'class+seg+bb',
+    'losses': 'CrossEntropyLoss+DiceLoss+0.0032*L1Loss',
+    'epochs':20,
+    'batch_size':32,
+}
+def main(data_dir, encoder, decoders, losses, batch_size):
+
+    # prepare data
+    tasks = decoders.split('+')
+    splits = ['train', 'test', 'val']
+    datasets = [OxpetDataset(os.path.join(data_dir, split), tasks) for split in splits]
+
+    if isinstance(batch_size, list):
+        assert len(batch_size) == 3
+        batch_sizes = batch_size
+    else:
+        batch_sizes = [batch_size] * 3
+
+    trainloader, valloader, testloader = [fast_loader(dataset, batch_size) for dataset, batch_size in zip(datasets, batch_sizes)]
+
+
 
 
 
