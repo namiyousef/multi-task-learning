@@ -71,7 +71,9 @@ def get_device():
         print('CUDA device not detected. Running on CPU instead.')
     return device
 
-def _split_equation(string):
-    string = "".join(string.lower().split())
+def _split_equation(string, lower=True):
+    if lower:
+      string = string.lower()
+    string = "".join(string.split())
     comps = string.split('+')
     return comps

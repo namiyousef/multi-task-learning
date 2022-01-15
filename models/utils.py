@@ -1,14 +1,22 @@
 from utils import _split_equation
 from criterion.loss_functions import RandomCombinedLoss, SimpleCombinedLoss, DynamicCombinedLoss
-from models import bodys
+from criterion import loss_functions
+from models import model
+import torch
 
 def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_during_test=False):
 
     decoders = _split_equation(decoders)
-    losses = _split_equation(losses)
+    losses = _split_equation(losses, False)
     scaling_factors = {task: float(loss.split('*')[0]) if '*' in loss else 1.0 for task, loss in
                        zip(decoders, losses)}
     losses = {task: loss.split('*')[-1] for task, loss in zip(decoders, losses)}
+
+    for task, loss_name in losses.items():
+        if hasattr(torch.nn, loss_name):
+            losses[task] = getattr(torch.nn, loss_name)()
+        else:
+            losses[task] = getattr(loss_functions, loss_name)()
 
     if weights is None:
         loss = SimpleCombinedLoss(losses, weights, sf=scaling_factors, eval_test=apply_weights_during_test)
@@ -38,6 +46,6 @@ def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_du
         else:
             loss = RandomCombinedLoss(losses, frequency=frequency, prior=prior, sf=scaling_factors, eval_test=apply_weights_during_test)
 
-    decoders = sorted(decoders)
-    model = getattr(bodys, f'{encoder}_{"_".join(decoders)}')()
-    return model, loss
+    decoders = sorted(decoders, reverse=True)
+    net = getattr(model, f'{encoder}_{"_".join(decoders)}')()
+    return net, loss
