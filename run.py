@@ -6,7 +6,8 @@ import torch
 
 # private imports
 from utils import get_device
-
+from criterion.loss_functions import CombinedLoss
+# TODO take track_history into __init__ and make the necess changes!
 class RunTorchModel:
     """Class for easy running of PyTorch models, similar to that of Keras API
 
@@ -26,7 +27,8 @@ class RunTorchModel:
         self.device = get_device()
 
         self.loss = loss
-        self.is_mtl = hasattr(self.loss, 'is_combined') # TODO standardize this
+
+        self.is_mtl = isinstance(self.loss, CombinedLoss)
 
         self.history = {'loss': {'train': self._create_init_loss_history()}}
 
@@ -97,11 +99,14 @@ class RunTorchModel:
 
                 end_train = time.time()
 
-                if verbose == 2:
+                if verbose > 1:
                     print(
                         f'Batch {i+1} complete. Time taken: load({start_train - start_load:.3g}), '
                         f'train({end_train - start_train:.3g}), total({end_train - start_load:.3g}). '
                     )
+                if verbose > 2:
+                    for key in epoch_train_history:
+                        print(f'{", ".join([f"{loss_name}({loss_val/(i+1):.3g})" for loss_name, loss_val in epoch_train_history[key].items()])}')
                 start_load = time.time()
             epoch_train_history = {key: {loss_name: loss_val/(i+1) for loss_name, loss_val in losses.items()} for key, losses in epoch_train_history.items()}
             self._update_history(epoch_train_history, 'train')
@@ -112,7 +117,7 @@ class RunTorchModel:
             end_epoch = time.time()
 
             print_message = f'Epoch {epoch+1}/{epochs} complete. Time taken: {end_epoch - start_epoch:.3g}. ' \
-                            f'Loss: {self._get_loss_print_msg()}'
+                            f'Loss: {self._get_loss_print_msg(self.history["loss"])}'
 
             if verbose:
                 print(f'{"-"*len(print_message)}')
@@ -155,7 +160,7 @@ class RunTorchModel:
         name = self._get_cls_name(self.loss)
         value = self._get_init_history_value(domain)
         loss_history = {name: value}
-        if hasattr(self.loss, 'is_combined_loss'):
+        if self.is_mtl:
             for key in self.loss.loss_dict:
                 loss_history[key] = value
 
@@ -163,7 +168,7 @@ class RunTorchModel:
 
     def _create_init_metric_history(self, domain='history'):
         value = self._get_init_history_value(domain)
-        if hasattr(self.loss, 'is_combined_loss'):
+        if self.is_mtl:
 
             return {self._get_cls_name(metric): value for  key, task_metrics in self.metrics.items()  for metric in task_metrics}
         else:
@@ -177,12 +182,14 @@ class RunTorchModel:
                     tmp_list.append(val)
                     self.history[key][split][name] = tmp_list
             else:
-                if hasattr(self.loss, 'is_combined_loss'):
+                if self.is_mtl:
                     for task in self.metrics:
                         task_metrics = self.metrics[task]
                         for metric in task_metrics:
                             name = self._get_cls_name(metric)
-                            self.history[key][split][name].append(epoch_history_dict[key][name])
+                            tmp_list = self.history[key][split][name].copy()
+                            tmp_list.append(epoch_history_dict[key][name])
+                            self.history[key][split][name] = tmp_list
                 else:
                     for metric in self.metrics:
                         name = self._get_cls_name(metric)
@@ -191,12 +198,12 @@ class RunTorchModel:
     def _update_loss_epoch_history(self, history_dict, loss):
         name = self._get_cls_name(self.loss)
         history_dict['loss'][name] += loss.item()
-        if hasattr(self.loss, 'is_combined_loss'):
+        if self.is_mtl:
             history_dict['loss'] = self.loss._update_history(history_dict['loss'])
         return history_dict
 
     def _update_metric_epoch_history(self, history_dict, outputs, targets):
-        if hasattr(self.loss, 'is_combined_loss'):
+        if self.is_mtl:
             for task in self.metrics:
                 task_metrics = self.metrics[task]
                 for metric in task_metrics:
@@ -221,8 +228,7 @@ class RunTorchModel:
     def _get_cls_name(self, cls):
         return cls.__class__.__name__
 
-    def _get_loss_print_msg(self):
-        loss_dict = self.history['loss']
+    def _get_loss_print_msg(self, loss_dict):
         return ', '.join(
             [
                 f'{split}[{", ".join([f"{loss_name}({sum(loss_val)/len(loss_val):.3g})" for loss_name, loss_val in loss_dict[split].items()])}]' for split in loss_dict.keys()
