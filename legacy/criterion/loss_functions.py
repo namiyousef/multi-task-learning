@@ -1,9 +1,4 @@
-
-import torch
 import torch.nn as nn
-from torch.nn.modules.module import Module
-import torch.nn.functional as F
-
 
 class BCELoss(nn.Module):
     def __init__(self):
@@ -23,7 +18,6 @@ class CrossEntropyLoss(nn.Module):
 
 class BCEWithLogitsLoss(nn.Module):
 
-    # maybe better loss
     def __init__(self):
         super(BCEWithLogitsLoss, self).__init__()
         self.loss = nn.BCEWithLogitsLoss()
@@ -33,17 +27,14 @@ class BCEWithLogitsLoss(nn.Module):
 
 class DiceLoss(nn.Module):
 
-    ### FROM online REWORD 
-    
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self):
         super(DiceLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
         
         inputs = inputs.view(-1)
         targets = targets.contiguous().view(-1)
-        
-        intersection = (inputs * targets).sum()                            
+        intersection = (inputs * targets).sum()
         dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
         
         return 1 - dice

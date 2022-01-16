@@ -1,14 +1,5 @@
 import torch
 
-# TODO Qingyu and Anny
-# recall, precision, f1
-# Design classes that subclass from torch.nn.Module. Make sure the init initialises the super class
-# make sure any definitions you need to make to customize the function are in __init__. This for example can be
-# any smoothing paramters that you have to add
-# make a forward method that takes in 2 tensors, outputs and targets. The return of that method should be the score of
-# the metric that you are calculating. A simple example is shown below
-# make sure to think of edge cases as well.
-
 class MultiAccuracy(torch.nn.Module):
     """Calculates accuracy for multiclass inputs (batchsize, feature length) by determining the most likely class
     using argmax -> (batchsize,) and then comparing with targets which are also (batchsize,)
@@ -21,6 +12,8 @@ class MultiAccuracy(torch.nn.Module):
         return torch.sum(outputs == targets) / len(targets)
 
 class PixelAccuracy(torch.nn.Module):
+    """Determines pixel accuracy for a binary classificaion problem that that has pixel values between [0, 1]
+    """
     def __init__(self):
         super(PixelAccuracy, self).__init__()
 
@@ -32,7 +25,8 @@ class PixelAccuracy(torch.nn.Module):
 
 
 class Jaccard(torch.nn.Module):
-
+    """Implements the Jaccard score for a binary classification problem with pixel values between [0, 1]
+    """
     def __init__(self):
         super(Jaccard, self).__init__()
 
@@ -45,7 +39,8 @@ class Jaccard(torch.nn.Module):
         return intersection / union
 
 class Precision(torch.nn.Module):
-
+    """Implements the Precision score for a binary classification problem with pixel values between [0, 1]
+    """
     def __init__(self):
         super(Precision, self).__init__()
 
@@ -66,6 +61,8 @@ class Precision(torch.nn.Module):
         return tp/(tp+fp)
 
 class Recall(torch.nn.Module):
+    """Implements the Recall score for a binary classification problem with pixel values between [0, 1]
+    """
     def __init__(self):
         super(Recall, self).__init__()
 
@@ -86,6 +83,8 @@ class Recall(torch.nn.Module):
         return tp / (tp + fn)
 
 class F1Score(torch.nn.Module):
+    """Implements the F1Score score for a binary classification problem with pixel values between [0, 1]
+    """
     def __init__(self):
         super(F1Score, self).__init__()
         self.precision = Precision()
