@@ -32,6 +32,7 @@ def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_du
 
     if weights is None:
         loss = SimpleCombinedLoss(losses, weights, sf=scaling_factors, eval_test=apply_weights_during_test)
+        print(f'We are using a SimpleCombinedLoss with weights={weights}, and scaling factors={scaling_factors}.')
     if isinstance(weights, list):
         if len(decoders) != len(weights):
             raise ValueError(
@@ -40,6 +41,7 @@ def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_du
             raise ValueError('The sum of weights is greater than 1. Please make sure they sum up to 1.')
 
         loss = SimpleCombinedLoss(losses, weights, sf=scaling_factors, eval_test=apply_weights_during_test)
+        print(f'We are using a SimpleCombinedLoss with weights={weights}, and scaling factors={scaling_factors}.')
 
     elif isinstance(weights, str):
         weights = weights.split('::')

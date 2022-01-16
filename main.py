@@ -22,7 +22,6 @@ def main(data_dir, encoder, decoders, losses, metrics, train_params={'epochs':2,
 
     trainloader, valloader, testloader = [fast_loader(dataset, batch_size) for dataset, batch_size in zip(datasets, batch_sizes)]
     print('Dataloaders created')
-
     model, loss = get_prebuilt_model(encoder, decoders, losses, **weighting_strategy)
     print('Model and loss created')
 
@@ -56,8 +55,8 @@ if __name__ == '__main__':
         'encoder': 'resnet34',
         'decoders': 'class+seg+bb',
         'losses': 'CrossEntropyLoss+SegDiceLoss+0.0032*L1Loss',
-        'weighting_strategy': {'weights': 'uniform::1'},
-        'batch_size': 8,
+        #'weighting_strategy': {},
+        'batch_size': 32,
         'metrics': {
             'class': 'Accuracy+MultiAccuracy',
             'seg': 'PixelAccuracy+Precision+Recall+FScore+Jaccard'
