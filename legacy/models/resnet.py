@@ -1,10 +1,9 @@
-#
-# Code referenced from  Torchvision
-
+# Code referenced from  Torchvision, https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 import torch
 import torch.nn as nn
 try:
     from torchvision.models.utils import load_state_dict_from_url
+    print('Loading...')
 except:
     print(f'Pytorch version is: {torch.__version__}. torchvision.models.utils does not exist')
     print('Importing load_state_dict_from_url from torch.hub instead...')

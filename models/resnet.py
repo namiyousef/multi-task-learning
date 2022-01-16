@@ -1,14 +1,17 @@
-# Code referenced from  Torchvision (TODO add link)
+# Code referenced from  Torchvision (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py)
 
 import torch
 import torch.nn as nn
+
 try:
     from torchvision.models.utils import load_state_dict_from_url
+    print(f'Pytorch version is: {torch.__version__}. torchvision.models.utils exists')
+    print('Importing load_state_dict_from_url from torchvision.models.utils')
 except:
     print(f'Pytorch version is: {torch.__version__}. torchvision.models.utils does not exist')
     print('Importing load_state_dict_from_url from torch.hub instead...')
     from torch.hub import load_state_dict_from_url
-
+    
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
            'wide_resnet50_2', 'wide_resnet101_2']

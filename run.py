@@ -1,13 +1,19 @@
-
+"""
+First version
+Things to do for future improvements:
+# TODO take track_history into __init__ and create a class variable self.track_metrics. use it to replace measure metrics
+# TODO add model saving and loading
+# TODO make update epoch functions explicit
+# TODO move all tests regarding MTL outside of RunTorchModel framework and into MTL loading functions
+"""
 # public imports
 import time
 import torch
 
-
 # private imports
 from utils import get_device
 from criterion.loss_functions import CombinedLoss
-# TODO take track_history into __init__ and make the necess changes!
+
 class RunTorchModel:
     """Class for easy running of PyTorch models, similar to that of Keras API
 
@@ -35,11 +41,9 @@ class RunTorchModel:
         if metrics:
             self.metrics = metrics
 
-        # checks
 
-        """if self.is_mtl:
+        if self.is_mtl:
             self._assert_dicts_compatible(model.decoders.keys(), loss.loss_dict.keys())
-            self._assert_metrics_compatible() # TODO checks that the metrics are compatible and that no weird dictionaries are added"""
 
 
     def train(self, trainloader, epochs=1, valloader=None, verbose=0, track_history=False):
@@ -145,7 +149,7 @@ class RunTorchModel:
         return epoch_test_history
 
     def save_model(self):
-        pass
+        raise NotImplementedError('Saving models has not yet been implemented.')
 
     def get_history(self):
         return self.history
@@ -234,3 +238,7 @@ class RunTorchModel:
                 f'{split}[{", ".join([f"{loss_name}({sum(loss_val)/len(loss_val):.3g})" for loss_name, loss_val in loss_dict[split].items()])}]' for split in loss_dict.keys()
             ]
         )
+
+    def _assert_dicts_compatible(self, *iterables):
+        iterables = [sorted(iterable) for iterable in iterables]
+        assert all(iterables)
