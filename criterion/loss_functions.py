@@ -60,7 +60,7 @@ class SimpleCombinedLoss(CombinedLoss):
 
 
 class RandomCombinedLoss(CombinedLoss):
-    """Adds random weights to the loss before summation
+    """Adds random weights to the loss before summation as appears in https://arxiv.org/abs/2111.10603
 
     :param loss_dict: dictionary with keys and values, {task_name: callable_loss}
     :type loss_dict: dict
@@ -109,6 +109,8 @@ class RandomCombinedLoss(CombinedLoss):
 
 # TODO there are some type casting problems here.. make sure all the inputs are tensors for future
 class DynamicCombinedLoss(CombinedLoss):
+    """Dynamic loss, as appears in https://arxiv.org/pdf/1803.10704.pdf
+    """
     def __init__(self, loss_dict, temperature, frequency, **kwargs):
         super(DynamicCombinedLoss, self).__init__(loss_dict, **kwargs)
         self.frequency = frequency
@@ -187,32 +189,6 @@ class NormalisedDynamicCombinedLoss(CombinedLoss):
                 self.weights[task][self.epoch % 2] = total_loss
 
 
-class BCELoss(nn.Module):
-    def __init__(self):
-        super(BCELoss, self).__init__()
-        self.loss = nn.BCELoss()
-
-    def forward(self, out, label):
-        return self.loss(out,label)
-
-class CrossEntropyLoss(nn.Module):
-    def __init__(self):
-        super(CrossEntropyLoss, self).__init__()
-        self.loss = nn.CrossEntropyLoss()
-
-    def forward(self, out, label):
-        return self.loss(out,label)        
-
-class BCEWithLogitsLoss(nn.Module):
-
-    # maybe better loss
-    def __init__(self):
-        super(BCEWithLogitsLoss, self).__init__()
-        self.loss = nn.BCEWithLogitsLoss()
-
-    def forward(self, out, label):
-        return self.loss(out,label)
-
 class SegDiceLoss(nn.Module):
     """Segmentation Dice Loss as appears here https://arxiv.org/abs/2006.14822
     """
@@ -229,36 +205,5 @@ class SegDiceLoss(nn.Module):
 
         return 1 - dice_score
 
-class IoULoss(nn.Module):
-    def __init__(self):
-        super(IoULoss, self).__init__()
-        self.loss = nn.BCEWithLogitsLoss()
-
-    def forward(self, out, label):
-        return self.loss(out,label)
-
-class L1Loss(nn.Module):
-    def __init__(self):
-        super(L1Loss, self).__init__()
-        self.loss = nn.L1Loss(reduction="none")
-
-    def forward(self, out, label):
-        return self.loss(out,label).sum(1).sum()/10000
-
-
-
-
-
-if __name__ == '__main__':
-    a = torch.rand(size=(5,4))
-    b = torch.rand(size=(5,4))
-    import torch
-    loss1 = torch.nn.L1Loss(reduction='none')
-    loss2 = torch.nn.L1Loss()
-    print(loss1(a, b).sum(1).sum()/20)
-    print(loss2(a, b))
-
-    loss = RandomCombinedLoss(loss_dict = {}, prior='uniform', frequency=1)
-    print(isinstance(loss, CombinedLoss))
 
 # TODO try to improve this using setters and getters. For now this is OK, but makes the definition of custom losses complex
