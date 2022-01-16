@@ -164,40 +164,50 @@ class NormalisedDynamicCombinedLoss(CombinedLoss):
         self.temperature = temperature
         self.mini_batch_counter = 0
         self.epoch = 0
-        self.weights = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
-        self.weight_totals = torch.ones(2, dtype=torch.float)
+        self.prev_losses = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
+        self.prev_total_losses = torch.ones(2, dtype=torch.float)
 
     def forward(self, outputs, targets):
         k0 = list(outputs.keys())[0]
         if outputs[k0].requires_grad:
             self.mini_batch_counter += 1
 
+        diff = lambda l1, l2 : l1 - l2 if l1 - l2 else 1.0
         weights = {
             task: math.exp(
-                (self.weights[task][-1].item() - self.weights[task][-2].item()) * \
-                (self.weight_totals[-1].item() - self.weight_totals[-2].item()) * \
-                (self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature))
+                diff(self.prev_losses[task][-1].item(), self.prev_losses[task][-2].item()) * \
+                diff(self.prev_total_losses[-1].item(), self.prev_total_losses[-2].item()) * \
+                (self.prev_losses[task][-1].item() / (self.prev_losses[task][-2].item() * self.temperature))
             ) for task in self.loss_dict
         }
 
         Z = sum(weights.values()) / len(self.loss_dict)
         weights = {task: weight / Z for task, weight in weights.items()}
 
+
         losses = self.caclulate_loss(outputs, targets, weights.values())
         total_loss = sum(losses.values())
+        self._update_weights(losses, total_loss)
 
-        if self.mini_batch_counter % self.frequency == 0:
-            self.epoch = self.mini_batch_counter // self.frequency
-            self._update_weights(losses, total_loss)
+        if self.mini_batch_counter // self.frequency:
+            self.mini_batch_counter = 0  # reset the counter, that means a whole new epoch has started
+            self.prev_losses, self.prev_total_losses = self._get_default_losses()  # reset prev losses
 
         return total_loss
 
     def _update_weights(self, losses, total_loss):
-        if self.epoch > 1:
-            for task in self.loss_dict:
-                self.weights[task][self.epoch % 2] = losses[task]
-                self.weights[task][self.epoch % 2] = total_loss
+        for task in self.loss_dict:
+            tmp_list = self.prev_losses[task]
+            tmp_list = torch.flip(tmp_list, dims=[0])
+            tmp_list[1] = losses[task]
+            self.prev_losses[task] = tmp_list
+        tmp_list = self.prev_total_losses
+        tmp_list = torch.flip(tmp_list, dims=[0])
+        tmp_list[1] = total_loss
+        self.prev_total_losses = tmp_list
 
+    def _get_default_losses(self):
+        return {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}, torch.ones(2, dtype=torch.float)
 
 class SegDiceLoss(nn.Module):
     """Segmentation Dice Loss as appears here https://arxiv.org/abs/2006.14822
