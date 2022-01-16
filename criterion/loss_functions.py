@@ -113,43 +113,53 @@ class DynamicCombinedLoss(CombinedLoss):
     """
     def __init__(self, loss_dict, temperature, frequency, **kwargs):
         super(DynamicCombinedLoss, self).__init__(loss_dict, **kwargs)
-        self.frequency = frequency
+        assert frequency != 1
+        self.frequency = frequency  # this is the reset frequency, e.g. epoch
         self.temperature = temperature
         self.mini_batch_counter = 0
-        self.epoch = 0
-        self.weights = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
+        self.prev_losses = {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
 
     def forward(self, outputs, targets):
+
+
         k0 = list(outputs.keys())[0]
         if outputs[k0].requires_grad:
             self.mini_batch_counter += 1
 
         weights = {
             task: math.exp(
-                self.weights[task][-1].item() / (self.weights[task][-2].item() * self.temperature)
+                self.prev_losses[task][-1].item() / (self.prev_losses[task][-2].item() * self.temperature)
             ) for task in self.loss_dict
         }
         Z = sum(weights.values()) / len(self.loss_dict)
         weights = {task: weight / Z for task, weight in weights.items()}
-
         losses = self.caclulate_loss(outputs, targets, weights.values())
         total_loss = sum(losses.values())
+        self._update_weights(losses)
 
-        if self.mini_batch_counter % self.frequency == 0:
-            self.epoch = self.mini_batch_counter // self.frequency
-            self._update_weights(losses)
+
+        if self.mini_batch_counter // self.frequency:
+            self.mini_batch_counter = 0  # reset the counter, that means a whole new epoch has started
+            self.prev_losses = self._get_default_losses() # reset prev losses
+
 
         return total_loss
 
     def _update_weights(self, losses):
-        if self.epoch > 1:
-            for task in self.loss_dict:
-                self.weights[task][self.epoch % 2] = losses[task]
+        for task in self.loss_dict:
+            tmp_list = self.prev_losses[task]
+            tmp_list = torch.flip(tmp_list, dims=[0])
+            tmp_list[1] = losses[task]
+            self.prev_losses[task] = tmp_list
+
+    def _get_default_losses(self):
+        return {task: torch.ones(2, dtype=torch.float) for task in self.loss_dict}
 
 class NormalisedDynamicCombinedLoss(CombinedLoss):
 
     def __init__(self, loss_dict, temperature, frequency, **kwargs):
         super(NormalisedDynamicCombinedLoss, self).__init__(loss_dict, **kwargs)
+        assert frequency != 1
         self.frequency = frequency
         self.temperature = temperature
         self.mini_batch_counter = 0
