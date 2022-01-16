@@ -82,17 +82,18 @@ class Recall(torch.nn.Module):
 
         return tp / (tp + fn)
 
-class F1Score(torch.nn.Module):
+class FScore(torch.nn.Module):
     """Implements the F1Score score for a binary classification problem with pixel values between [0, 1]
     """
-    def __init__(self):
-        super(F1Score, self).__init__()
+    def __init__(self, beta=1):
+        super(FScore, self).__init__()
         self.precision = Precision()
         self.recall = Recall()
+        self.beta_squared = beta**2
 
     def forward(self, outputs, targets):
 
         recall = self.recall(outputs, targets)
         precision = self.precision(outputs, targets)
 
-        return 2 * (precision * recall) / (precision + recall)
+        return (1+self.beta_squared) * (precision * recall) / (self.beta_squared*precision + recall)

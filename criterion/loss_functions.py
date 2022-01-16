@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import math
 
-# TODO PixelDiceLoss and ContDiceLoss for the BB!
-# TODO try to improve this using setters and getters. For now this is OK, but makes the definition of custom losses complex
 class CombinedLoss(torch.nn.Module):
     """Superclass for defining all combined losses. Any custom combined loss must subclass from this. If the custom
     losses have their own weights, then they will be multiplied by the scaling factors before the total loss is computed
@@ -215,22 +213,21 @@ class BCEWithLogitsLoss(nn.Module):
     def forward(self, out, label):
         return self.loss(out,label)
 
-class DiceLoss(nn.Module):
+class SegDiceLoss(nn.Module):
+    """Segmentation Dice Loss as appears here https://arxiv.org/abs/2006.14822
+    """
+    def __init__(self, smooth=1):
+        super(SegDiceLoss, self).__init__()
+        self.smooth = smooth
 
-    ### FROM online REWORD 
-    
-    def __init__(self, weight=None, size_average=True):
-        super(DiceLoss, self).__init__()
+    def forward(self, outputs, targets):
+        
+        outputs = outputs.flatten()
+        targets = targets.flatten()
+        intersection = (outputs * targets).sum()
+        dice_score = (2.*intersection + self.smooth)/(outputs.sum() + targets.sum() + self.smooth)
 
-    def forward(self, inputs, targets, smooth=1):
-        
-        inputs = inputs.view(-1)
-        targets = targets.contiguous().view(-1)
-        
-        intersection = (inputs * targets).sum()                            
-        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
-        
-        return 1 - dice
+        return 1 - dice_score
 
 class IoULoss(nn.Module):
     def __init__(self):
@@ -263,3 +260,5 @@ if __name__ == '__main__':
 
     loss = RandomCombinedLoss(loss_dict = {}, prior='uniform', frequency=1)
     print(isinstance(loss, CombinedLoss))
+
+# TODO try to improve this using setters and getters. For now this is OK, but makes the definition of custom losses complex

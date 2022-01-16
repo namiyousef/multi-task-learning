@@ -55,16 +55,16 @@ if __name__ == '__main__':
         'data_dir': 'datasets/data_new/',
         'encoder': 'resnet34',
         'decoders': 'class+seg+bb',
-        'losses': 'CrossEntropyLoss+DiceLoss+0.0032*L1Loss',
+        'losses': 'CrossEntropyLoss+SegDiceLoss+0.0032*L1Loss',
         'weighting_strategy': {'weights': 'uniform::1'},
-        'batch_size': 32,
+        'batch_size': 8,
         'metrics': {
             'class': 'Accuracy+MultiAccuracy',
-            'seg': 'PixelAccuracy+Precision+Recall+F1Score+Jaccard'
+            'seg': 'PixelAccuracy+Precision+Recall+FScore+Jaccard'
         },
         'train_params': {
             'epochs': 20,
-            'verbose': 2,
+            'verbose': 3,
         },
     }
     main(**config)
