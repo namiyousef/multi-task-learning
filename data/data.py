@@ -13,6 +13,8 @@ class OxpetDataset(Dataset):
     :type tasks: list
     :param transform: transformation to apply to the images
     :type transform: list
+    :param target_transforms: transforms to add to each target, of the form {task:[transforms]}
+    :type target_transforms: dict
     :param shuffle: parameter to enable shuffling within batch after loading
     :type shuffle: bool
     :param max_size: maximum size of data to draw from (useful for debugging purposes)
@@ -35,7 +37,6 @@ class OxpetDataset(Dataset):
 
         self.transform = Compose([self._from_numpy, self._permute_tf_to_torch]+transform)
         self.target_transforms = self._prepare_default_target_transforms(target_transforms)
-
 
         self.shuffle = shuffle
         self.max_size = max_size
@@ -65,15 +66,23 @@ class OxpetDataset(Dataset):
         return dict(file=file, data=data)
 
     def _permute_tf_to_torch(self, tensor):
+        """Function to load PIL images in correct format required by PyTorch
+        This extends the capabiliy of torchvision.transforms.ToTensor to 4D arrays
+        """
         return tensor.permute([0, 3, 2, 1])
 
     def _from_numpy(self, tensor):
         return torch.from_numpy(tensor).float()
 
     def _prepare_class_task(self, tensor):
+        """Prepares classification data to correct shape required by task
+        """
         return torch.reshape(tensor, (-1,)).type(torch.LongTensor)
 
     def _prepare_default_target_transforms(self, target_transforms):
+        """
+        Prepares the default target transformations for the tasks
+        """
         task_transorm_dict = {}
         for task in self.targets:
             task_transform = [self._from_numpy]
@@ -158,9 +167,4 @@ def fast_loader(dataset, batch_size=32, drop_last=False, transforms=None):
         dataset, batch_size=None,  # must be disabled when using samplers
         sampler=BatchSampler(RandomBatchSampler(dataset, batch_size), batch_size=batch_size, drop_last=drop_last)
     )
-
-
-# Future considerations and improvements
-
-   
 
