@@ -112,6 +112,8 @@ class RunTorchModel:
                     for key in epoch_train_history:
                         print(f'{", ".join([f"{loss_name}({loss_val/(i+1):.3g})" for loss_name, loss_val in epoch_train_history[key].items()])}')
                 start_load = time.time()
+
+                # TODO return the tensors to CPU, then delete?
             epoch_train_history = {key: {loss_name: loss_val/(i+1) for loss_name, loss_val in losses.items()} for key, losses in epoch_train_history.items()}
             self._update_history(epoch_train_history, 'train')
             if valloader:
@@ -219,11 +221,12 @@ class RunTorchModel:
                 history_dict[name] += metric(outputs, targets).item()
         return history_dict
 
-    def _move(self, data):
+    def _move(self, data, device=None):
+        device = device if device else self.device
         if torch.is_tensor(data):
-            return data.to(self.device)
+            return data.to(device)
         elif isinstance(data, dict):
-            return {task: tensor.to(self.device) for task, tensor in data.items()}
+            return {task: tensor.to(device) for task, tensor in data.items()}
         elif isinstance(data, list):
             raise NotImplementedError('Currenlty no support for tensors stored in lists.')
         else:
