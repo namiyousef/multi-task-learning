@@ -59,7 +59,8 @@ class SegmentationHead(nn.Module):
 
 
 class ConvLayer(nn.Module):
-
+    """Implements a convolutional layer block with 2 BN-ReLu-Conv layers and a ConvSkip layer
+    """
     def __init__(self, n_input_channels, n_output_channels, **kwargs):
         super(ConvLayer, self).__init__()
 
