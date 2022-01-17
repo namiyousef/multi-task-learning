@@ -1,12 +1,11 @@
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler, DataLoader
 import torch
 import os
 import h5py
-from torch.utils.data import DataLoader
 
 class OxfordPetDataset(Dataset):
 
-    def __init__(self, config, split, mini_batch_size, transform=None):
+    def __init__(self, config, split):
         root = os.getcwd()
         root = os.path.join(root, 'datasets/data_new')
         root = os.path.join(root, split)
@@ -25,7 +24,6 @@ class OxfordPetDataset(Dataset):
         self.bb_task = "BB" in config["Tasks"].keys()
         self.bin_task = "Class" in config["Tasks"].keys()
 
-        self.transform = transform
 
     def __getitem__(self, index):
         sample = {}
@@ -45,10 +43,6 @@ class OxfordPetDataset(Dataset):
         if self.bin_task:
             _bin = self._load_data(index, self.bin_dir)
             sample['Class'] = torch.from_numpy(_bin).float()
-
-        if self.transform is not None:
-            # TODO need to make sure it only transforms the images, not the outputs, but in a dynamic manner
-            pass
 
         return sample
 
@@ -74,9 +68,30 @@ class OxfordPetDataset(Dataset):
 def get_dataset(config, split):
     dataset = OxfordPetDataset(config, split, 32)
     return dataset
-    # return 1
 
 
 def get_dataloader(dataset, batch_size):
     dataloader = DataLoader(dataset, batch_size, shuffle=True)
     return dataloader
+
+
+class RandomBatchSampler(Sampler):
+    def __init__(self, dataset, batch_size):
+        self.batch_size = batch_size
+        self.dataset_length = len(dataset)
+        self.n_batches = self.dataset_length / self.batch_size
+
+        self.batch_ids = torch.randperm(int(self.n_batches))
+
+    def __len__(self):
+        return self.batch_size
+
+    def __iter__(self):
+        for id in self.batch_ids:
+            idx = torch.arange(id * self.batch_size, (id + 1) * self.batch_size)
+            for index in idx:
+                yield int(index)
+        if int(self.n_batches) < self.n_batches:
+            idx = torch.arange(int(self.n_batches) * self.batch_size, self.dataset_length)
+            for index in idx:
+                yield int(index)

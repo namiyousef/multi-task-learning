@@ -27,15 +27,16 @@ class BCEWithLogitsLoss(nn.Module):
 
 class DiceLoss(nn.Module):
 
-    def __init__(self):
+    def __init__(self, smooth=1):
         super(DiceLoss, self).__init__()
+        self.smooth =1
 
-    def forward(self, inputs, targets, smooth=1):
+    def forward(self, outputs, targets):
         
-        inputs = inputs.view(-1)
-        targets = targets.contiguous().view(-1)
-        intersection = (inputs * targets).sum()
-        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        outputs = outputs.flatten()
+        targets = targets.flatten()
+        intersection = (outputs * targets).sum()
+        dice = (2.*intersection + self.smooth)/(outputs.sum() + targets.sum() + self.smooth)
         
         return 1 - dice
 
@@ -54,8 +55,3 @@ class L1Loss(nn.Module):
 
     def forward(self, out, label):
         return self.loss(out,label).sum(1).sum()/10000
-
-
-
-# TODO DiceLoss for BB, class, inputs configs, def forward(outputs, targets)
-# outputs -> tensors, targets -> tensors
