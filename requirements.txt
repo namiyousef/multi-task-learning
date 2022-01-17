@@ -1,0 +1,14 @@
+certifi==2021.10.8
+cffi @ file:///opt/concourse/worker/volumes/live/976f8942-f51d-4f0e-7352-2a10f0820d0e/volume/cffi_1625814703974/work
+h5py==3.6.0
+mkl-fft==1.3.0
+mkl-random==1.0.2
+mkl-service==2.3.0
+numpy @ file:///opt/concourse/worker/volumes/live/4c9854be-7c57-4c34-5c96-c6010c527509/volume/numpy_and_numpy_base_1607448155669/work
+olefile @ file:///Users/ktietz/demo/mc3/conda-bld/olefile_1629805411829/work
+Pillow==8.4.0
+pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work
+six @ file:///tmp/build/80754af9/six_1623709665295/work
+torch @ file:///opt/concourse/worker/volumes/live/1d78d466-29ec-4304-5675-668327ecb9b0/volume/pytorch_1622211061357/work
+torchvision @ file:///opt/concourse/worker/volumes/live/92c94a54-c735-4a9c-4619-d526c6e53690/volume/torchvision_1622226497084/work
+typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1631814937681/work
