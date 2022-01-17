@@ -2,6 +2,36 @@ import torch.nn as nn
 import torch
 
 
+class ClassificationHeadUNet(nn.Module):
+    def __init__(self, filters, num_classes):
+        super(ClassificationHeadUNet, self).__init__()
+        L = len(filters)
+        for i in range(1, L):
+            setattr(self,
+                    f'upsample_{i}',
+                    nn.ConvTranspose2d(filters[-i], filters[-i], kernel_size=2, stride=2)
+                    )
+            setattr(self,
+                    f'decode_conv{i}',
+                    ConvLayer(filters[-i] + filters[-i - 1], filters[-i - 1], stride=1, padding=1)
+                    )
+
+        # should you do a final convolution? Currently not doing one for filters[0]?
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(filters[-L], num_classes)
+
+    def forward(self, x, skips):
+        for i, skip in enumerate(skips[::-1], 1):
+            upsample = getattr(self, f'upsample_{i}')
+            decode_conv = getattr(self, f'decode_conv{i}')
+            x = upsample(x)
+            x = decode_conv(torch.cat([x, skip], dim=1))
+
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        output = self.fc(x)
+        return output
+
 class ClassificationHead(nn.Sequential):
     def __init__(self, n_input_features, num_classes):
         super(ClassificationHead, self).__init__()

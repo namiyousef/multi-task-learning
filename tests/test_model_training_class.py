@@ -17,6 +17,7 @@ from run import RunTorchModel
 class ModelTrainingClass(unittest.TestCase):
 
     def test_loss_dict_creation(self):
+        pass
         
     def test_metric_dict_creation(self):
         pass
