@@ -1,8 +1,6 @@
 import torch
-# TODO make this an import from torch vision?
-from models.resnet import resnet34
-from models.heads import ClassificationHead, SegmentationHead, BBHead
-from models.bodys import ResUBody, ResUBodyNEW
+from legacy.models.resnet import resnet34
+from legacy.models.heads import ClassificationHead, SegmentationHead, BBHead
 import torch.nn as nn
 
 
