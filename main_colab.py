@@ -1,12 +1,19 @@
 import torch
-from utils import _prepare_data, _update_loss_dict, _update_performance_dict, _print_epoch_results
+from utils import _prepare_data, _update_performance_dict, _print_epoch_results
 from models.model import Model
 from models import model
 from criterion.criterion import Criterion
 from criterion.metric_functions import accuracy
-from criterion import metric_functions
-from data.data import get_dataloader, get_dataset
+from data.data import get_dataloader, get_dataset, get_fast_dataloader
 from train import model_train
+try:
+    from google.colab import drive
+    drive.mount('/content/gdrive')
+    drive_base_path = '/content/gdrive/MyDrive/'
+    colab = True
+except:
+    print('Colab imports failed. Continuing anyways...')
+    colab = False
 configuration = {
         'save_params':'s',
         'encoder': {
@@ -33,7 +40,7 @@ else:
 
 
 def main(config, epochs=1, batch_size=32,
-         metrics=None, losses=None, validation_data=True): # TODO later change to false!
+         metrics=None, losses=None, validation_data=True, fast_loading=True, prior=None, apply_prior='batch'): # TODO later change to false!
     """
     :param config:
     # either dict or string. If string will use configuration that exists. If dict will build the model
@@ -55,12 +62,14 @@ def main(config, epochs=1, batch_size=32,
     # TODO need
     criterion = Criterion(task_config)
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-04)
-
     train_dataset = get_dataset(task_config, "train")
     test_dataset = get_dataset(task_config, "test")
-
-    train_dataloader = get_dataloader(train_dataset, batch_size)
-    test_dataloader = get_dataloader(test_dataset, batch_size)
+    if fast_loading:
+        train_dataloader = get_fast_dataloader(train_dataset, batch_size)
+        test_dataloader = get_fast_dataloader(test_dataset, batch_size)
+    else:
+        train_dataloader = get_dataloader(train_dataset, batch_size)
+        test_dataloader = get_dataloader(test_dataset, batch_size)
 
     if validation_data:
         val_dataset = get_dataset(task_config, "val")
@@ -74,12 +83,40 @@ def main(config, epochs=1, batch_size=32,
 
     print("Train loop started...")
 
+    def constrained_bernoulli(size):
+        while True:
+            prior = torch.randint(0, 2, size=(size,), dtype=torch.float)
+            sum_prior = sum(prior).item()
+            if sum_prior:
+                break
+        prior = prior / sum_prior
+        return prior
+
+    def uniform(size):
+        prior = torch.rand(size=(size,))
+        prior = torch.softmax(prior)
+        return prior
+
+    if prior:
+        from functools import partial
+        size = len(task_config['Tasks'])
+        if prior == 'constrained_bernoulli':
+            prior = partial(constrained_bernoulli, size)
+        elif prior == 'uniform':
+            prior = partial(uniform, size)
+
     for i, epoch in enumerate(range(epochs)):
         print(f"Epoch {i+1}") # TODO beautify this with verbose later
         model_eval = model_train(
             config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader, #metrics=callable_metrics
+            val_dataloader=val_dataloader, prior=prior, apply_prior=apply_prior
         )
+        model_save_name = f'{task_config["Model"]}{epoch+1}.pt'
+        if colab:
+            path = drive_base_path+model_save_name
+            torch.save(model_eval.state_dict(), path)
+            print(f'Wrote model {model_save_name} to personal drive.')
+
 
     print("Test loop started...")
     model_eval.eval()
@@ -120,7 +157,7 @@ if __name__ == '__main__':
         }
     }
 
-    main(config=config, epochs=1, batch_size=32)
+    main(config=config, epochs=2, batch_size=1, prior=1.0)
 
 
 

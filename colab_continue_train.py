@@ -1,10 +1,13 @@
 import torch
 from utils import _prepare_data, _update_performance_dict, _print_epoch_results
-from legacy.models.model import Model
-from legacy.criterion.metric_functions import accuracy
-from legacy.criterion.criterion import Criterion
-from legacy.data.data import get_dataloader, get_dataset
-from legacy.train import model_train
+from models.model import Model
+from criterion.criterion import Criterion
+from criterion.metric_functions import accuracy
+from data.data import get_dataloader, get_dataset
+from train import model_train
+from google.colab import drive
+drive.mount('/content/gdrive')
+drive_base_path = '/content/gdrive/MyDrive/'
 
 CUDA_AVAILABLE = torch.cuda.is_available()
 
@@ -15,19 +18,17 @@ else:
     device = torch.device('cpu')
     print('CUDA device not detected. Running on CPU instead.')
 
-def main(config, epochs=1, batch_size=32, validation_data=True):
-    """
-    :param config:
-    # either dict or string. If string will use configuration that exists. If dict will build the model
-    :param epochs:
-    :param batch_size:
-    :param metrics:
-    :return:
-    """
+def continue_train(config, batch_size, epochs, model_name, last_saved_model_epoch):
+    path = f'/content/gdrive/MyDrive/{model_name}{last_saved_model_epoch}.pt'
+    print(f'Continuing train from epoch {last_saved_model_epoch+1}')
 
     model_config = config['model']
     task_config = config['mtl']
+
     net = Model(task_config, model_config)
+    net.load_state_dict(torch.load(path))
+    print(f'Successfully loaded model with name: {model_name}{last_saved_model_epoch}')
+
 
     criterion = Criterion(task_config)
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-04)
@@ -38,18 +39,16 @@ def main(config, epochs=1, batch_size=32, validation_data=True):
     train_dataloader = get_dataloader(train_dataset, batch_size)
     test_dataloader = get_dataloader(test_dataset, batch_size)
 
-    if validation_data:
-        val_dataset = get_dataset(task_config, "val")
-        val_dataloader = get_dataloader(val_dataset, batch_size)
-
-    print("Train loop started...")
-
-    for i, epoch in enumerate(range(epochs)):
-        print(f"Epoch {i + 1}")
+    for i, epoch in enumerate(range(last_saved_model_epoch, epochs)):
+        print(f"Epoch {epoch + 1}")  # TODO beautify this with verbose later
         model_eval = model_train(
             config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader
         )
+        model_save_name = f'{task_config["Model"]}{epoch + 1}.pt'
+        path = drive_base_path + model_save_name
+        torch.save(model_eval.state_dict(), path)
+        print(f'Wrote model {model_save_name} to personal drive.')
+
 
     print("Test loop started...")
     model_eval.eval()
@@ -67,31 +66,7 @@ def main(config, epochs=1, batch_size=32, validation_data=True):
                 test_accuracy += accuracy(task_targets['Class'].to(device), test_output['Class'])
             loss = criterion(test_output, task_targets)
 
-            perfomance_dict = _update_performance_dict(perfomance_dict, loss, test_output, mini_batch, task_config)
+            perfomance_dict = _update_performance_dict(perfomance_dict, loss, test_output,mini_batch,task_config)
 
     _print_epoch_results(perfomance_dict, config['mtl'])
-    print(f'Test Accuracy: {test_accuracy / (i + 1)}')
-
-
-if __name__ == '__main__':
-
-    config = {
-        'model': [64, 128, 256, 512],
-        'mtl': {
-            "Model": 'mtl model',  # TODO why do we need this?
-            "Tasks": {
-                "Class": 2,
-                # "Segmen":1,
-                # "BB":4
-            },
-            "Loss Lambda": {
-                "Class": 1,
-                # "Segmen":1,
-                # "BB":1
-            }
-
-        }
-    }
-
-    main(config=config, epochs=1, batch_size=32)
-
+    print(f'Test Accuracy: {test_accuracy/(i+1)}')

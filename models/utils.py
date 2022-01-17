@@ -1,67 +1,57 @@
-from utils import _split_equation
-from criterion.loss_functions import RandomCombinedLoss, SimpleCombinedLoss, DynamicCombinedLoss, NormalisedDynamicCombinedLoss
-from criterion import loss_functions
-from models import model
 import torch
+from models.resnet import resnet18, resnet34
+#from models.heads import BBHeadNEW, ClassificationHead, SegmentationHead, BBHead
+from models.heads import ClassificationHead, SegmentationHead, BBHead
+from models.bodys import ResUBody, ResUBodyNEW
+import torch.nn as nn
+#from torchsummaryX import summary
 
-def get_prebuilt_model(encoder, decoders, losses, weights=None, apply_weights_during_test=False):
-    """Function to get pre-built default models that exist in models.model
-    :param encoder: name of the encoder to use
-    :type encoder: str
-    :param decoders: + separated names of decoder heads to use, e.g. seg+class. Currently only supports defaults.
-    :type decoders: str
-    :param losses: + separated names of losses to use and scaling factors, e.g. 0.01*CrossEntropyLoss+0.01*L1Loss. Prioritises PyTorch losses, if they don't exist looks for custom losses in criterion.loss_functions
-    :type losses: str
-    :param weights: name of weight convention to use. CAn add parameters using ::, e.g. uniform::1
-    :type weights: str
-    :param apply_weights_during_test: flag to determine if weights to be applied during test
-    :type apply_weights_during_test: bool
-    :returns: instantiated HardMTLModel and CombinedLoss
-    """
-    decoders = _split_equation(decoders)
-    losses = _split_equation(losses, False)
-    scaling_factors = {task: float(loss.split('*')[0]) if '*' in loss else 1.0 for task, loss in
-                       zip(decoders, losses)}
-    losses = {task: loss.split('*')[-1] for task, loss in zip(decoders, losses)}
 
-    for task, loss_name in losses.items():
-        if hasattr(torch.nn, loss_name):
-            losses[task] = getattr(torch.nn, loss_name)()
-        else:
-            losses[task] = getattr(loss_functions, loss_name)()
+class ConvLayer(nn.Module):
+    def __init__(self, input_dim, output_dim, stride, padding):
+        super(ConvLayer, self).__init__()
 
-    if weights is None:
-        loss = SimpleCombinedLoss(losses, weights, sf=scaling_factors, eval_test=apply_weights_during_test)
-        print(f'We are using a SimpleCombinedLoss with weights={weights}, and scaling factors={scaling_factors}.')
-    if isinstance(weights, list):
-        if len(decoders) != len(weights):
-            raise ValueError(
-                'The number of tasks is different to the number of weights. Please make sure that decoders and weights have the same size.')
-        elif sum(weights) != 1:
-            raise ValueError('The sum of weights is greater than 1. Please make sure they sum up to 1.')
+       
+        self.conv_block = nn.Sequential(
+            nn.BatchNorm2d(input_dim),
+            nn.ReLU(),
+            nn.Conv2d(
+                input_dim, output_dim, kernel_size=3, stride=stride, padding=padding
+            ),
+            nn.BatchNorm2d(output_dim),
+            nn.ReLU(),
+            nn.Conv2d(output_dim, output_dim, kernel_size=3, padding=1),
+        )
+        self.conv_skip = nn.Sequential(
+            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=stride, padding=1),
+            nn.BatchNorm2d(output_dim),
+        )
 
-        loss = SimpleCombinedLoss(losses, weights, sf=scaling_factors, eval_test=apply_weights_during_test)
-        print(f'We are using a SimpleCombinedLoss with weights={weights}, and scaling factors={scaling_factors}.')
+    def forward(self, x):
 
-    elif isinstance(weights, str):
-        weights = weights.split('::')
-        prior = weights[0]
-        if len(weights) < 2:
-            raise ValueError(
-                'You must include a parameter. For random loss weighting, this must be frequency. For dynamic loss weighting, this must be frequency and temperature')
-        try:
-            frequency = int(weights[1])
-        except:
-            TypeError('Frequency must be an integer')
-        if prior == 'dynamic':
-            temperature = float(weights[-1])
-            loss = DynamicCombinedLoss(losses, frequency=frequency, temperature=temperature)
-        elif prior == 'dynamic_novel':
-            temperature = float(weights[-1])
-            loss = NormalisedDynamicCombinedLoss(losses, frequency=frequency, temperature=temperature)
-        else:
-            loss = RandomCombinedLoss(losses, frequency=frequency, prior=prior, sf=scaling_factors, eval_test=apply_weights_during_test)
+        return self.conv_block(x) + self.conv_skip(x)
 
-    decoders = sorted(decoders, reverse=True)
-    net = getattr(model, f'{encoder}_{"_".join(decoders)}')()
-    return net, loss
+
+
+
+def get_body(filters):
+    # TODO so we're using entire resnet?? Not just the decoder?
+    shared_net = resnet34(False)
+    shared_net_chan = filters[3]
+    return shared_net ,shared_net_chan
+    
+def get_heads(config,tasks,encoder_chan,filters):
+
+    return torch.nn.ModuleDict({task: get_head(config, encoder_chan, task,filters) for task in tasks})
+
+def get_head(config, encoder_chan, task,filters): 
+
+    if task == "Class":
+        return ClassificationHead(encoder_chan,config['Tasks'][task])
+
+    if task == "Segmen":
+        return SegmentationHead(filters)
+
+    if task == "BB":
+        return BBHead(encoder_chan,config['Tasks'][task])
+

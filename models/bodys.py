@@ -1,31 +1,27 @@
 import torch.nn as nn
+#from models.model import  ConvLayer
 
 class ResUBody(nn.Module):
-    """
-    Implements the ResUBody model. Deprecated.
-    """
     def __init__(self,  filters):
         super(ResUBody, self).__init__()
 
-        self.L = len(filters)
-        self.input_conv_layer = self._input_cov(filters[0], split=False)
-        self.input_skip_layer = self._input_cov(filters[0], split=True)
-        for i in range(self.L):
-            current_filter = filters[i]
-            next_filter = filters[i+1]
-            setattr(self, f'conv_layer_{i+1}', ConvLayer(current_filter, next_filter, stride=2, padding=1))
+        self.input_conv_layer = self._input_cov(filters[0],split = False)
+        self.input_skip_layer = self._input_cov(filters[0],split = True)
+        self.conv_layer_1 = ConvLayer(filters[0], filters[1], 2, 1)
+        self.conv_layer_2 = ConvLayer(filters[1], filters[2], 2, 1)
+
+        self.output_layer = ConvLayer(filters[2], filters[3], 2, 1)
+        
 
     def forward(self, x):
 
-        x = self.input_conv_layer(x) + self.input_skip_layer(x)
-        skips = []
-        for i in range(self.L - 1):
-            skips.append(x)
-            x = getattr(self, f'conv_layer_{i+1}')(x)
+        x_1 = self.input_conv_layer(x) + self.input_skip_layer(x)
+        x_2 = self.conv_layer_1(x_1)
+        x_3 = self.conv_layer_2(x_2)
+        output = self.output_layer(x_3)
 
-        return x, skips
+        return output , [x_1,x_2,x_3]
 
-    # TODO this causes an issue with GPU/CPU. The layer is declared locally so it does not get bound to nn.Module. Fix for future releases
     def _input_cov(self,filters,split):
 
         def _call(_input):
@@ -47,31 +43,30 @@ class ResUBodyNEW(nn.Module):
     def __init__(self,  filters):
         super(ResUBodyNEW, self).__init__()
 
-        self.L = len(filters)
-
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.input_conv_layer = self._input_cov(filters[0], split=False)
-        self.input_skip_layer = self._input_cov(filters[0], split=True)
-        for i in range(self.L):
-            current_filter = filters[i]
-            next_filter = filters[i + 1]
-            setattr(self, f'conv_layer_{i + 1}', ConvLayer(current_filter, next_filter, stride=2, padding=1))
+        self.input_conv_layer = self._input_cov(filters[0],split = False)
+        self.input_skip_layer = self._input_cov(filters[0],split = True)
+        self.conv_layer_1 = ConvLayer(filters[0], filters[1], 2, 1)
+        self.conv_layer_2 = ConvLayer(filters[1], filters[2], 2, 1)
+
+        self.output_layer = ConvLayer(filters[2], filters[3], 2, 1)
         
 
     def forward(self, x):
 
-        x = self.input_conv_layer(x)
-        x = self.maxpool(x)
-        skips = []
-        for i in range(self.L - 1):
-            skips.append(x)
-            x = getattr(self, f'conv_layer_{i + 1}')(x)
+        x_1 = self.input_conv_layer(x)#+ self.input_skip_layer(x)
+        x_1 = self.maxpool(x_1)
+        x_2 = self.conv_layer_1(x_1)
+        x_3 = self.conv_layer_2(x_2)
+        output = self.output_layer(x_3)
 
-        return x, skips
+        return output , [x_1,x_2,x_3]
 
     def _input_cov(self,filters,split):
 
         def _call(_input):
+            
+            #x = nn.Conv2d(3, filters, kernel_size=3, padding=1)(_input)
 
             if split == True:
                 return x
@@ -88,23 +83,27 @@ class ResUBodyNEW(nn.Module):
 
 
 class ConvLayer(nn.Module):
-    """Implements a convolutional layer block with 2 BN-ReLu-Conv layers and a ConvSkip layer
-    """
-    def __init__(self, n_input_channels, n_output_channels, **kwargs):
+    def __init__(self, input_dim, output_dim, stride, padding):
         super(ConvLayer, self).__init__()
 
+        ### TAKEN FROM INTERNET NEEDS REWORDING
+
         self.conv_block = nn.Sequential(
-            nn.BatchNorm2d(n_input_channels),
+            nn.BatchNorm2d(input_dim),
             nn.ReLU(),
-            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, **kwargs),
-            nn.BatchNorm2d(n_output_channels),
+            nn.Conv2d(
+                input_dim, output_dim, kernel_size=3, stride=stride, padding=padding
+            ),
+            nn.BatchNorm2d(output_dim),
             nn.ReLU(),
-            nn.Conv2d(n_output_channels, n_output_channels, **kwargs),
+            nn.Conv2d(output_dim, output_dim, kernel_size=3, padding=1),
         )
         self.conv_skip = nn.Sequential(
-            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, **kwargs),
-            nn.BatchNorm2d(n_output_channels),
+            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=stride, padding=1),
+            nn.BatchNorm2d(output_dim),
         )
 
     def forward(self, x):
+
         return self.conv_block(x) + self.conv_skip(x)
+        #return self.conv_block(x) + self.conv_skip(x)
