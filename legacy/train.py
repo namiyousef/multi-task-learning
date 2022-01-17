@@ -61,7 +61,7 @@ def model_train(config, model, criterion, optimizer, train_dataloader, val_datal
         outputs = model(inputs)
         loss = criterion(outputs,task_targets)
 
-        if apply_prior == 'batch':
+        if prior and apply_prior == 'batch':
             if isinstance(prior, DLW):
                 weights = prior(i, loss)
                 print(weights)

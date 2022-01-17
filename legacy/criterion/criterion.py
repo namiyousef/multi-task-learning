@@ -3,15 +3,15 @@ import torch.nn as nn
 
 def get_loss(task):
     if task == 'Class':
-        from criterion.loss_functions import CrossEntropyLoss
+        from legacy.criterion.loss_functions import CrossEntropyLoss
         return CrossEntropyLoss()
 
     elif task == 'Segmen':
-        from criterion.loss_functions import DiceLoss
+        from legacy.criterion.loss_functions import DiceLoss
         return DiceLoss()
 
     elif task == 'BB':
-        from criterion.loss_functions import L1Loss
+        from legacy.criterion.loss_functions import L1Loss
         return L1Loss()
 
 class Criterion(nn.Module):

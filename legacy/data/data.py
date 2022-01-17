@@ -5,6 +5,7 @@ import h5py
 
 class OxfordPetDataset(Dataset):
 
+# TODO why isn't prepare data being called? How does it even work without ??
     def __init__(self, config, split):
         root = os.getcwd()
         root = os.path.join(root, 'datasets/data_new')
@@ -66,7 +67,7 @@ class OxfordPetDataset(Dataset):
 #### UTIL FUNCTS #########
 
 def get_dataset(config, split):
-    dataset = OxfordPetDataset(config, split, 32)
+    dataset = OxfordPetDataset(config, split)
     return dataset
 
 

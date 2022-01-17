@@ -39,7 +39,7 @@ else:
     print('CUDA device not detected. Running on CPU instead.')
 
 
-def main(config, epochs=1, batch_size=32,
+def main(config, epochs=2, batch_size=32,
          metrics=None, losses=None, validation_data=True, fast_loading=True, prior=None, apply_prior='batch'): # TODO later change to false!
     """
     :param config:
@@ -107,6 +107,7 @@ def main(config, epochs=1, batch_size=32,
 
     for i, epoch in enumerate(range(epochs)):
         print(f"Epoch {i+1}") # TODO beautify this with verbose later
+        print(prior)
         model_eval = model_train(
             config=task_config, model=net, criterion=criterion, optimizer=optimizer, train_dataloader=train_dataloader,
             val_dataloader=val_dataloader, prior=prior, apply_prior=apply_prior
@@ -157,7 +158,7 @@ if __name__ == '__main__':
         }
     }
 
-    main(config=config, epochs=2, batch_size=1, prior=1.0)
+    main(config=config, epochs=2, batch_size=32)
 
 
 
