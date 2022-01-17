@@ -1,5 +1,5 @@
 import torch
-from utils import _prepare_data, _update_performance_dict, _print_epoch_results
+from legacy.utils import _prepare_data, _update_performance_dict, _print_epoch_results
 from legacy.models.model import Model
 from legacy.criterion.metric_functions import accuracy
 from legacy.criterion.criterion import Criterion

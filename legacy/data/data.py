@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, Sampler, DataLoader
+from torch.utils.data import Dataset, Sampler, DataLoader, BatchSampler
 import torch
 import os
 import h5py
@@ -74,6 +74,17 @@ def get_dataloader(dataset, batch_size):
     dataloader = DataLoader(dataset, batch_size, shuffle=True)
     return dataloader
 
+def get_fast_dataloader(dataset, batch_size):
+    dataloader = DataLoader(
+        dataset,
+        batch_size=None,
+        sampler=BatchSampler(
+            RandomBatchSampler(dataset=dataset, batch_size=batch_size),
+            batch_size=batch_size,
+            drop_last=False
+        )
+    )
+    return dataloader
 
 class RandomBatchSampler(Sampler):
     def __init__(self, dataset, batch_size):

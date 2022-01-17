@@ -2,6 +2,21 @@ import torch
 from torch import nn
 from legacy.models.heads import ClassificationHead, SegmentationHead, BBHead
 from legacy.models.resnet import resnet34
+from legacy.models.utils import get_body, get_heads
+
+
+class Model(nn.Module):
+
+    def __init__(self, config: dict, filters):
+        super(Model, self).__init__()
+        self.model = config["Model"]
+        self.tasks = config["Tasks"].keys()
+        self.encoder, self.encoder_chan = get_body(filters)
+        self.decoders = get_heads(config, self.tasks, self.encoder_chan, filters)
+
+    def forward(self, x):
+        output, skips = self.encoder(x)
+        return {task: self.decoders[task](output, skips) for task in self.tasks}
 
 class HardMTLModel(nn.Module):
     """Base MTL model. Builds MTL from a single encoder and can have multiple decoders
