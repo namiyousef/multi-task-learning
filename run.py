@@ -261,3 +261,7 @@ class RunTorchModel:
     # TODO make update epoch functions explicit
     # TODO move all tests regarding MTL outside of RunTorchModel framework and into MTL loading functions
     """
+
+    # TODO although you can run stuff well, your code doesn't utilise GPU well. Or at least it may not. Make sure you delete references to tensors, empty cache
+    # TODO and also make sure that you never store tensors anywhere, and that you only pass them through. In particular you need to pay attention with your loss functions and metric
+    # Functions. See this resource: https://blog.paperspace.com/pytorch-memory-multi-gpu-debugging/
