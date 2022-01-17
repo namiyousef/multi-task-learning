@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from models.heads import ClassificationHead, SegmentationHead, BBHead
-from models.resnet import resnet34
+from legacy.models.heads import ClassificationHead, SegmentationHead, BBHead
+from legacy.models.resnet import resnet34
 
 class HardMTLModel(nn.Module):
     """Base MTL model. Builds MTL from a single encoder and can have multiple decoders
