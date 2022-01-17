@@ -1,11 +1,3 @@
-"""
-First version
-Things to do for future improvements:
-# TODO take track_history into __init__ and create a class variable self.track_metrics. use it to replace measure metrics
-# TODO add model saving and loading
-# TODO make update epoch functions explicit
-# TODO move all tests regarding MTL outside of RunTorchModel framework and into MTL loading functions
-"""
 # public imports
 import time
 import torch
@@ -47,7 +39,15 @@ class RunTorchModel:
 
 
     def train(self, trainloader, epochs=1, valloader=None, verbose=0, track_history=False):
+        """Method to train model
 
+        :param trainloader: loader that contains dataset
+        :param epochs: number of epochs
+        :param valloader: loader tht contains validation data
+        :param verbose: how much to print. Accepts 0,1,2,3
+        :param track_history: bool to determine if metric history is stored
+        :returns: trained model
+        """
         measure_metrics = track_history and hasattr(self, 'metrics')
 
         if measure_metrics:
@@ -130,7 +130,14 @@ class RunTorchModel:
                 print(print_message)
                 print(f'{"-"*len(print_message)}')
 
+        return self.model
+
     def test(self, testloader, measure_val_metrics=True):
+        """Function to test trained model on testing data
+        :param testloader: loader for test data
+        :param measure_val_metrics: bool to determine if validation metircs stored (if loader is validation). To be deprecated.
+        :returns: performance of test set
+        """
         self.model.eval()
         measure_metrics = measure_val_metrics if not measure_val_metrics else hasattr(self, 'metrics')
         epoch_test_history = {'loss': self._create_init_loss_history('epoch')}
@@ -245,3 +252,12 @@ class RunTorchModel:
     def _assert_dicts_compatible(self, *iterables):
         iterables = [sorted(iterable) for iterable in iterables]
         assert all(iterables)
+
+    """
+    First version
+    Things to do for future improvements:
+    # TODO take track_history into __init__ and create a class variable self.track_metrics. use it to replace measure metrics
+    # TODO add model saving and loading
+    # TODO make update epoch functions explicit
+    # TODO move all tests regarding MTL outside of RunTorchModel framework and into MTL loading functions
+    """
