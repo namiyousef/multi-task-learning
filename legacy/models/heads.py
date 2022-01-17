@@ -1,109 +1,80 @@
-from os import X_OK
 import torch.nn as nn
 import torch
-import torch.nn.functional as F
-from torchvision import transforms as trans
-#from models.model import  ConvLayer
+
 
 class ClassificationHead(nn.Sequential):
-
-    def __init__(self, in_channels, num_classes):
+    def __init__(self, n_input_features, num_classes):
         super(ClassificationHead, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512, num_classes)
-        
-    def forward(self, inputs,skips):
-        x = self.avgpool(inputs)
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dense = nn.Linear(n_input_features, num_classes)
+
+    def forward(self, inputs, skips):
+        x = self.global_avg_pool(inputs)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
+        x = self.dense(x)
         return x.double()
+
 
 class BBHead(nn.Sequential):
-
-    def __init__(self, in_channels, num_classes):
+    def __init__(self, n_input_features, num_classes):
         super(BBHead, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512, num_classes)
-        
-    def forward(self, inputs,skips):
-        x = self.avgpool(inputs)
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dense = nn.Linear(n_input_features, num_classes)
+
+    def forward(self, inputs, skips):
+        x = self.global_avg_pool(inputs)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
+        x = self.dense(x)
         return x.double()
 
+
 class SegmentationHead(nn.Module):
-    def __init__(self,filters):
+    def __init__(self, filters):
         super(SegmentationHead, self).__init__()
 
-        ### NEEDS REWORDING
+        filters = filters[::-1]
 
-        self.upsample_1 = Upsample(filters[3], filters[3], 2, 2)
-        self.decode_conv1 = ConvLayer(filters[3] + filters[2], filters[2], 1, 1)
+        for i, filter in enumerate(filters, 1):
+            setattr(self, f'upsample{i}', nn.ConvTranspose2d(filter, filter, kernel_size=2, stride=2))
+            if i < len(filters):
+                setattr(self, f'decode_conv{i}', ConvLayer(filter + filters[i], filters[i], stride=1, padding=1))
 
-        self.upsample_2 = Upsample(filters[2], filters[2], 2, 2)
-        self.decode_conv2 = ConvLayer(filters[2] + filters[1], filters[1], 1, 1)
+        setattr(self, f'decode_conv{i}', ConvLayer(2 * filter, filter, stride=1, padding=1))
+        setattr(self, f'decode_conv{i + 1}', ConvLayer(filter, filter, stride=1, padding=1))
 
-        self.upsample_3 = Upsample(filters[1], filters[1], 2, 2)
-        self.decode_conv3 = ConvLayer(filters[1] + filters[0], filters[0], 1, 1)
-
-        self.upsample_4 = Upsample(filters[0], filters[0], 2, 2)
-        self.decode_conv4 = ConvLayer(filters[0]+ filters[0], filters[0], 1, 1)
-        self.decode_conv5 = ConvLayer(filters[0], filters[0], 1, 1)
         self.output_layer = nn.Sequential(
-            nn.Conv2d(filters[0], 1, 1, 1),
+            nn.Conv2d(filter, 1, 1, 1),
             nn.Sigmoid(),
         )
 
     def forward(self, x, skips):
-        
-        x = self.upsample_1(x)
-        x = self.decode_conv1(torch.cat([x, skips[3]], dim=1))
-        x = self.upsample_2(x)
-        x = self.decode_conv2(torch.cat([x, skips[2]], dim=1))
-        x = self.upsample_3(x)
-        x = self.decode_conv3(torch.cat([x, skips[1]], dim=1))
-        x = self.upsample_4(x)
-        x = self.decode_conv4(torch.cat([x, skips[0]], dim=1))
-        x = self.upsample_4(x)
-        x = self.decode_conv5(x)
+        skips = skips[::-1]
+        for i, skip in enumerate(skips, 1):
+            x = getattr(self, f'upsample{i}')(x)
+            x = getattr(self, f'decode_conv{i}')(torch.cat([x, skip], dim=1))
+        x = getattr(self, f'upsample{i}')(x)
+        x = getattr(self, f'decode_conv{i + 1}')(x)
         output = self.output_layer(x)
-        return output  
+        return output
+
 
 class ConvLayer(nn.Module):
-    
-    def __init__(self, input_dim, output_dim, stride, padding):
+
+    def __init__(self, n_input_channels, n_output_channels, **kwargs):
         super(ConvLayer, self).__init__()
 
-        ### TAKEN FROM INTERNET NEEDS REWORDING
-       
         self.conv_block = nn.Sequential(
-            nn.BatchNorm2d(input_dim),
+            nn.BatchNorm2d(n_input_channels),
             nn.ReLU(),
-            nn.Conv2d(
-                input_dim, output_dim, kernel_size=3, stride=stride, padding=padding
-            ),
-            nn.BatchNorm2d(output_dim),
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, **kwargs),
+            nn.BatchNorm2d(n_output_channels),
             nn.ReLU(),
-            nn.Conv2d(output_dim, output_dim, kernel_size=3, padding=1),
+            nn.Conv2d(n_output_channels, n_output_channels, kernel_size=3, **kwargs),
         )
         self.conv_skip = nn.Sequential(
-            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=stride, padding=1),
-            nn.BatchNorm2d(output_dim),
+            nn.Conv2d(n_input_channels, n_output_channels, kernel_size=3, **kwargs),
+            nn.BatchNorm2d(n_output_channels),
         )
 
     def forward(self, x):
-
         return self.conv_block(x) + self.conv_skip(x)
-
-class Upsample(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel, stride):
-        super(Upsample, self).__init__()
-
-        ### TAKEN FROM INTERNET NEEDS REWORDING
-
-        self.upsample = nn.ConvTranspose2d(
-            input_dim, output_dim, kernel_size=kernel, stride=stride
-        )
-
-    def forward(self, x):
-        return self.upsample(x)
