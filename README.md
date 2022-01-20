@@ -1,15 +1,15 @@
 # Multi-Task Learning
 
 How to run main code:
-- Clone the repository
-- Create a new environment from `requirements.txt`
-- Run `main.py`
+- Clone the repository.
+- Create a new environment from `requirements.txt`.
+- Run `main.py`.
 
 How to use this as a library:
 - You can import functions from from the different files. The code is designed to behave like a module.
-- In particular, the function `get_prebuilt_model` is very useful if you want to load in-built (default) models
-- You can add new defaults based on configurations that you build
-- It is also possible to build models in a bespoke way
+- In particular, the function `get_prebuilt_model` is very useful if you want to load in-built (default) models.
+- You can add new defaults based on configurations that you build.
+- It is also possible to build models in a bespoke way.
 
 
 How to run legacy code:
