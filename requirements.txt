@@ -6,7 +6,7 @@ mkl-random==1.0.2
 mkl-service==2.3.0
 numpy @ file:///opt/concourse/worker/volumes/live/4c9854be-7c57-4c34-5c96-c6010c527509/volume/numpy_and_numpy_base_1607448155669/work
 olefile @ file:///Users/ktietz/demo/mc3/conda-bld/olefile_1629805411829/work
-Pillow==8.4.0
+Pillow==9.0.1
 pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work
 six @ file:///tmp/build/80754af9/six_1623709665295/work
 torch @ file:///opt/concourse/worker/volumes/live/1d78d466-29ec-4304-5675-668327ecb9b0/volume/pytorch_1622211061357/work
